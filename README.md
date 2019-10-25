@@ -17,15 +17,15 @@ Also, a study of the monitor ROM and the hardware indicates the MZ80A was intend
 
 ##### 
 
-![alt text](https://github.com/pdsmart/tranZPUter/blob/master/docs/IMG_9675.jpg)
+![alt text](https://github.com/pdsmart/MZ80A_80COLOUR/blob/master/docs/IMG_9675.jpg)
 
-![alt text](https://github.com/pdsmart/tranZPUter/blob/master/docs/IMG_9671.jpg)
+![alt text](https://github.com/pdsmart/MZ80A_80COLOUR/blob/master/docs/IMG_9671.jpg)
 
-![alt text](https://github.com/pdsmart/tranZPUter/blob/master/docs/IMG_9674.jpg)
+![alt text](https://github.com/pdsmart/MZ80A_80COLOUR/blob/master/docs/IMG_9674.jpg)
 
-![alt text](https://github.com/pdsmart/tranZPUter/blob/master/docs/IMG_9678.jpg)
+![alt text](https://github.com/pdsmart/MZ80A_80COLOUR/blob/master/docs/IMG_9678.jpg)
 
-![alt text](https://github.com/pdsmart/tranZPUter/blob/master/docs/IMG_9680.jpg)
+![alt text](https://github.com/pdsmart/MZ80A_80COLOUR/blob/master/docs/IMG_9680.jpg)
 
 
 
