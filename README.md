@@ -14,10 +14,10 @@ Also, a study of the monitor ROM and the hardware indicates the MZ80A was intend
 
 ## MZ80A 40/80 Colour Board v1.0
 
-The following pictures display the v1.0 of the board. A few issues existed:-
-a) The kicad footprint editor, probably my mistake, switched the 2 gate array footprints. Thus the gatearrays were in the wrong position which required a fair bit of fine soldering to correct.
-b) The oscillator wasnt giving a clean signal so the addition of a 100pF ceramic cap between the U14B ping 4 and ground corrected this.
-c) The gatearray G signal was not connected between the two gatearrays even though it was in the circuit, it appeared to be a PCB break.
+The following pictures display the v1.0 of the board. A few issues existed:-<br/>
+a) The kicad footprint editor, probably my mistake, switched the 2 gate array footprints. Thus the gatearrays were in the wrong position which required a fair bit of fine soldering to correct.<br/>
+b) The oscillator wasnt giving a clean signal so the addition of a 100pF ceramic cap between the U14B ping 4 and ground corrected this.<br/>
+c) The gatearray G signal was not connected between the two gatearrays even though it was in the circuit, it appeared to be a PCB break.<br/>
 
 I have corrected the circuit diagram and intend to produce a v1.1 PCB in due course. One area of the design I am not happy with is the enabling of 40/80 character mode and selection of the Character Generator ROM enable signal. Due to the limit of signals available to the board from the Video connector and gate array risers, I had to use the top 4 addresses of the video attribute RAM. It works but if you are using colour output you get the odd random colour if the top 4 bytes are being displayed (I initially thought these bytes wouldnt be displayed but the hardware scroll does display them). I am currently perfecting a latching mechanism such that the write to the top 4 bytes doesnt affect the attribute RAM. Also I will make the Flash RAM programmable in-situ such that a PCG is possible.
 
