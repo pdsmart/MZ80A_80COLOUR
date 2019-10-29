@@ -32,7 +32,7 @@ b) Add additional logic to enable writes to the PCG Flash RAM.<br/>
 Underside of the daughter board. The 34pin CN connector locates to the mainboard Video expansion connector and the remainder are standoffs to extend the original socketed IC's (removed and relocated onto the daughter card) upto the daughter board for rerouting.
 
 ![alt text](https://github.com/pdsmart/MZ80A_80COLOUR/blob/master/docs/IMG_9671.jpg)
-Daughter board just out of the IR SMD oven
+Daughter board just out of the Infra Red SMD oven
 
 ![alt text](https://github.com/pdsmart/MZ80A_80COLOUR/blob/master/docs/IMG_9674.jpg)
 Daughter board with all the relocated IC's in place.
