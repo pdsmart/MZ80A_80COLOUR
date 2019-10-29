@@ -14,26 +14,34 @@ Also, a study of the monitor ROM and the hardware indicates the MZ80A was intend
 
 ## MZ80A 40/80 Colour Board v1.0
 
-The following pictures display the v1.0 of the board. A few issues existed:-<br/>
+The following pictures display v1.0 of the board. A few issues existed during production:-<br/>
 a) The kicad footprint editor, probably my mistake, switched the 2 gate array footprints. Thus the gatearrays were in the wrong position which required a fair bit of fine soldering to correct.<br/>
-b) The oscillator wasnt giving a clean signal so the addition of a 100pF ceramic cap between the U14B ping 4 and ground corrected this.<br/>
+b) The oscillator wasnt giving a clean signal so the addition of a 100pF ceramic cap between the U14B pin 4 and ground corrected this.<br/>
 c) The gatearray G signal was not connected between the two gatearrays even though it was in the circuit, it appeared to be a PCB break.<br/>
 
 I have corrected the circuit diagram and intend to produce a v1.1 PCB in due course. One area of the design I am not happy with is the enabling of 40/80 character mode and selection of the Character Generator ROM enable signal. Due to the limit of signals available to the board from the Video connector and gate array risers, I had to use the top 4 addresses of the video attribute RAM. It works but if you are using colour output you get the odd random colour if the top 4 bytes are being displayed (I initially thought these bytes wouldnt be displayed but the hardware scroll does display them). I am currently perfecting a latching mechanism such that the write to the top 4 bytes doesnt affect the attribute RAM. Also I will make the Flash RAM programmable in-situ such that a PCG is possible.
 
+#### To Do
+a) Correct control register access such that it doesnt write to attribute RAM.<br/>
+b) Add additional logic to enable writes to the PCG Flash RAM.<br/>
+
+### Images of the MZ80A 40/80 Switchable Colour Board
 ##### 
 
 ![alt text](https://github.com/pdsmart/MZ80A_80COLOUR/blob/master/docs/IMG_9675.jpg)
+Underside of the daughter board. The 34pin CN connector locates to the mainboard Video expansion connector and the remainder are standoffs to extend the original socketed IC's (removed and relocated onto the daughter card) upto the daughter board for rerouting.
 
 ![alt text](https://github.com/pdsmart/MZ80A_80COLOUR/blob/master/docs/IMG_9671.jpg)
+Daughter board just out of the IR SMD oven
 
 ![alt text](https://github.com/pdsmart/MZ80A_80COLOUR/blob/master/docs/IMG_9674.jpg)
+Daughter board with all the relocated IC's in place.
 
 ![alt text](https://github.com/pdsmart/MZ80A_80COLOUR/blob/master/docs/IMG_9678.jpg)
+Daughter board inplace on the original motherboard. Some design corrections can be seen.
 
 ![alt text](https://github.com/pdsmart/MZ80A_80COLOUR/blob/master/docs/IMG_9680.jpg)
-
-
+The original motherboard with the daughter board in place. Also the tranZPUter and RFS daughter boards can be seen.
 
 
 
