@@ -13,6 +13,9 @@
 ## Copyright:       (c) 2020 Philip Smart <philip.smart@net2net.org>
 ##
 ## History:         January 2020   - Initial script written.
+##                  July 2020      - Updated, saw my notes where I hadnt updated the circuit diagram,
+##                                   U9 Q2:0 = CGA14:12, so selectable in 4K blocks with D7 of the
+##                                   attribute RAM providing CGA11.
 ##
 #########################################################################################################
 ## This source file is free software: you can redistribute it and#or modify
@@ -38,18 +41,33 @@ TARGET_IMAGE_CGROM=${ROOTDIR}/software/roms/COLOURBOARD_CG.rom
 # Currently not enough ROMS from the various machines have been obtained, so we use the MZ80A CG ROM
 # as filler.
 ROM_INCLUDE=
+# Block 0
 ROM_INCLUDE+="${ROM_PATH}/mz-80acg.rom:"               # 2K Slot 0
 ROM_INCLUDE+="${ROM_PATH}/MZ80K_cgrom.rom:"            # 2K Slot 1
-ROM_INCLUDE+="${ROM_PATH}/MZ80K2E_Jap_cgrom.rom:"      # 2K Slot 2
-ROM_INCLUDE+="${ROM_PATH}/MZFONT.rom:"                 # 2K Slot 3
-ROM_INCLUDE+="${ROM_PATH}/MZ700_cgrom.rom:"            # 4K Slot 4 & 3
+
+# Block 1
+ROM_INCLUDE+="${ROM_PATH}/MZFONT.rom:"                 # 2K Slot 2
+ROM_INCLUDE+="${ROM_PATH}/MZ80K2E_Jap_cgrom.rom:"      # 2K Slot 3
+
+# Block 2
+ROM_INCLUDE+="${ROM_PATH}/MZ700_cgrom.rom:"            # 4K Slot 4 & 5
+
+# Block 3
 ROM_INCLUDE+="${ROM_PATH}/MZ700_cgrom_jp.rom:"         # 4K Slot 6 & 7
-ROM_INCLUDE+="${ROM_PATH}/mz-80acg.rom:"               # 2K Slot 8
+
+# Block 4
+ROM_INCLUDE+="${ROM_PATH}/mz-80acg.rom:"               # 2K Slot 8 
 ROM_INCLUDE+="${ROM_PATH}/MZ80B.rom:"                  # 2K Slot 9
+
+# Block 5
 ROM_INCLUDE+="${ROM_PATH}/mz-80acg.rom:"               # 2K Slot 10
 ROM_INCLUDE+="${ROM_PATH}/mz-80acg.rom:"               # 2K Slot 11
+
+# Block 6
 ROM_INCLUDE+="${ROM_PATH}/mz-80acg.rom:"               # 2K Slot 12
 ROM_INCLUDE+="${ROM_PATH}/mz-80acg.rom:"               # 2K Slot 13
+
+# Block 7
 ROM_INCLUDE+="${ROM_PATH}/mz-80acg.rom:"               # 2K Slot 14
 ROM_INCLUDE+="${ROM_PATH}/mz-80acg.rom:"               # 2K Slot 15
 

@@ -36,3 +36,13 @@ FPGA/build/test_generation_1.rpt
 FPGA/devices/
 FPGA/functions.vhd
 schematics/MZ80-80CLR/
+FPGA/build/VideoController.qws
+docker/QuartusPrime/Dockerfile.13.0.1.old
+docker/QuartusPrime/Quartus-web-13.0.1.232-linux.tar
+docker/QuartusPrime/files/13.0/
+docker/QuartusPrime/files/13.1/
+docker/QuartusPrime/files/17.1/
+docker/QuartusPrime/local/
+docker/QuartusPrime/quartus_docker.sh
+pin2lib.py
+schematics/MZ80_80CLR_v2.0a.pdf
