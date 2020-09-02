@@ -37,17 +37,18 @@ use altera.altera_syn_attributes.all;
 entity VideoInterfaceCPLD is
     port (
         -- Primary video clock.
-        VID_CLK                   : in    std_logic;                                     -- 16MHz base clock for video timing and gate clocking.
+        CLOCK_16                  : in    std_logic;                                     -- 16MHz base clock for video timing and gate clocking.
 
         -- Z80 Address and Data. Address is muxed with video addressing, not direct.
-        A                         : in    std_logic_vector(13 downto 0);                 -- Z80 Address bus, multiplexed with video address. 13..11 come from the tranZPUter board.
+     -- A                         : in    std_logic_vector(10 downto 0);                 -- Z80 Address bus, multiplexed with video address. 13..11 come from the tranZPUter board.
         D                         : inout std_logic_vector(7 downto 0);                  -- Z80 Data bus, from the Colour Card CN! connector.
 
         -- Z80 Control signals.
-        WRn                       : in    std_logic;                                     -- Z80 Write signal from the Colour Card CN! connector.
+     -- WRn                       : in    std_logic;                                     -- Z80 Write signal from the Colour Card CN! connector.
         RDn                       : in    std_logic;                                     -- Z80 Read signal from the Colour Card CN! connector.
         RESETn                    : in    std_logic;                                     -- Z80 RESET signal from the tranZPUter board.
-        IORQn                     : in    std_logic;                                     -- Z80 IORQ signal from the tranZPUter board.
+        MB_RESETn                 : in    std_logic;                                     -- Z80 RESET signal from the tranZPUter board.
+     -- IORQn                     : in    std_logic;                                     -- Z80 IORQ signal from the tranZPUter board.
 
         -- Video and Mainboard signals.
         SRVIDEO_OUT               : out   std_logic;                                     -- Shift Register 74LS165 Video Output onto mainboard.
@@ -66,7 +67,9 @@ entity VideoInterfaceCPLD is
         VRAM_CS_INn               : in    std_logic;                                     -- Chip Select for access to the Video RAM from the mainboard IC15 socket.
         GTn                       : in    std_logic;                                     -- GATE signal from the Colour Card CN! connector.
         CSn                       : in    std_logic;                                     -- Chip Select for the Video Attribute RAM from the Colour Card CN! connector.
-        MEM_CSn                   : in    std_logic;                                     -- Extended memory select for region 0xE000 - 0xFFFF from the tranZPUter board.
+     -- MEM_CSn                   : in    std_logic;                                     -- Extended memory select for region 0xE000 - 0xFFFF from the tranZPUter board.
+        OUTCLK                    : out   std_logic;                                     -- CPU signal serialiser clock.
+        INDATA                    : in    std_logic_vector(3 downto 0);                  -- Incoming serialised CPU signals.
 
         -- V[name] = Voltage translated signals which mirror the mainboard signals but at a lower voltage.
         VADDR                     : out   std_logic_vector(13 downto 0);                 -- Z80 Address bus, multiplexed with video address.
@@ -86,19 +89,22 @@ entity VideoInterfaceCPLD is
         VHSY_OUT                  : in    std_logic;                                     -- Horizontal Sync.
         VSYNCH_OUT                : in    std_logic;                                     -- Veritcal Sync.
         VVBLNK_OUTn               : in    std_logic;                                     -- Vertical blanking.
+                --
+        VMB_HBLNKn                : out   std_logic;                                     -- Horizontal Blanking from the Colour Card CN! connector.
+        VMB_SYNCH                 : out   std_logic;                                     -- Vertical sync from the Colour Card CN! connector.
+        VMB_V_HBLNKn              : out   std_logic;                                     -- combined vertical/horizontal sync from the Colour Card CN! connector.
+        VMB_VIDEO                 : out   std_logic;                                     -- Video (74LS165 output combined with GATE) from the Colour Card CN! connector.
+        VMB_LOAD                  : out   std_logic                                      -- shift register load signal from the Colour Card CN! connector.
 
         -- Reserved.
-        TBA                       : in    std_logic_vector(9 downto 0)                   -- Reserved signals.
-
-        -- JTAG / ISP
-        --TCK                     : in    std_logic;
-        --TDI                     : in    std_logic;
-        --TDO                     : out   std_logic;
-        --TMS                     : in    std_logic 
+      --TBA                       : in    std_logic_vector(4 downto 0)                   -- Reserved signals.
     );
 END entity;
 
 architecture rtl of VideoInterfaceCPLD is
+
+    signal CPLDRESETn             :       std_logic;
+    signal RESET_COUNTER          :       unsigned(2 downto 0);
 
 begin
 
@@ -109,17 +115,17 @@ begin
     port map
     (    
         -- Primary video clock.
-        VID_CLK         => VID_CLK,                                                      -- 16MHz base clock for video timing and gate clocking.
+        CLOCK_16        => CLOCK_16,                                                     -- 16MHz base clock for video timing and gate clocking.
 
         -- Z80 Address and Data. Address is muxed with video addressing, not direct.
-        A               => A,                                                            -- Z80 Address bus, multiplexed with video address. 13..11 come from the tranZPUter board.
+     -- A               => A,                                                            -- Z80 Address bus, multiplexed with video address. 13..11 come from the tranZPUter board.
         D               => D,                                                            -- Z80 Data bus, from the Colour Card CN! connector.
 
         -- Z80 Control signals.
-        WRn             => WRn,                                                          -- Z80 Write signal from the Colour Card CN! connector.
+     -- WRn             => WRn,                                                          -- Z80 Write signal from the Colour Card CN! connector.
         RDn             => RDn,                                                          -- Z80 Read signal from the Colour Card CN! connector.
-        RESETn          => RESETn,                                                       -- Z80 RESET signal from the tranZPUter board.
-        IORQn           => IORQn,                                                        -- Z80 IORQ signal from the tranZPUter board.
+        RESETn          => CPLDRESETn,                                                   -- Z80 RESET signal from the tranZPUter board.
+     -- IORQn           => IORQn,                                                        -- Z80 IORQ signal from the tranZPUter board.
 
         -- Video and Mainboard signals.
         SRVIDEO_OUT     => SRVIDEO_OUT,                                                  -- Shift Register 74LS165 Video Output onto mainboard.
@@ -138,7 +144,9 @@ begin
         VRAM_CS_INn     => VRAM_CS_INn,                                                  -- Chip Select for access to the Video RAM from the mainboard IC15 socket.
         GTn             => GTn,                                                          -- GATE signal from the Colour Card CN! connector.
         CSn             => CSn,                                                          -- Chip Select for the Video Attribute RAM from the Colour Card CN! connector.
-        MEM_CSn         => MEM_CSn,                                                      -- Extended memory select for region 0xE000 - 0xFFFF from the tranZPUter board.
+     -- MEM_CSn         => MEM_CSn,                                                      -- Extended memory select for region 0xE000 - 0xFFFF from the tranZPUter board.
+        OUTCLK          => OUTCLK,                                                       -- CPU signal serialiser clock.
+        INDATA          => INDATA,                                                       -- Incoming serialised CPU signals.
 
         -- V[name] = Voltage translated signals which mirror the mainboard signals but at a lower voltage.
         VADDR           => VADDR,                                                        -- Z80 Address bus, multiplexed with video address.
@@ -151,7 +159,6 @@ begin
         VCSn            => VCSn,                                                         -- Video RAM Attribute Chip Select (CSn) to FPGA.
         VGTn            => VGTn,                                                         -- Video Gate (GTn) 
         VWRn            => VWRn,                                                         -- WRn to FPGA.
-        VRESETn         => VRESETn,                                                      -- Reset to FPGA.
 
         VSRVIDEO_OUT    => VSRVIDEO_OUT,                                                 -- Video out from 74LS165 on mainboard, pre-GATE.
         VHBLNK_OUTn     => VHBLNK_OUTn,                                                  -- Horizontal blanking.
@@ -159,8 +166,35 @@ begin
         VSYNCH_OUT      => VSYNCH_OUT,                                                   -- Veritcal Sync.
         VVBLNK_OUTn     => VVBLNK_OUTn,                                                  -- Vertical blanking.
 
+        VMB_HBLNKn      => VMB_HBLNKn,                                                   -- Horizontal Blanking from the Colour Card CN! connector.
+        VMB_SYNCH       => VMB_SYNCH,                                                    -- Vertical sync from the Colour Card CN! connector.
+        VMB_V_HBLNKn    => VMB_V_HBLNKn,                                                 -- combined vertical/horizontal sync from the Colour Card CN! connector.
+        VMB_VIDEO       => VMB_VIDEO,                                                    -- Video (74LS165 output combined with GATE) from the Colour Card CN! connector.
+        VMB_LOAD        => VMB_LOAD                                                      -- shift register load signal from the Colour Card CN! connector.
+
         -- Reserved.
-        TBA             => TBA                                                           -- Reserved signals.
+      --TBA             => TBA                                                           -- Reserved signals.
     );
+
+    -- Process to reset the CPLD based on a minimum number of clock cycles to tie in with the FPGA. We dont want the
+    -- CPU starting up until the FPGA is ready.
+    --
+    CPLDRESET: process(RESETn, MB_RESETn, CLOCK_16)
+    begin
+        if RESETn = '0' or MB_RESETn = '0' then
+            RESET_COUNTER        <= (others => '1');
+            CPLDRESETn           <= '0';
+        elsif rising_edge(CLOCK_16) then
+            if RESET_COUNTER /= 0 then
+                RESET_COUNTER    <= RESET_COUNTER - 1;
+            else
+                CPLDRESETn       <= '1';
+            end if;
+        end if;
+    end process;
+
+    -- Reset to FPGA uses the mainboard reset.
+    VRESETn             <= RESETn;
+
 
 end architecture;

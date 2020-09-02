@@ -35,70 +35,106 @@ use work.VideoController_pkg.all;
 library altera;
 use altera.altera_syn_attributes.all;
 
-entity VideoControllerCPLD is
+entity VideoControllerFPGA is
     port (
         -- Primary and video clocks.
-        CLOCK_50                  : in    std_logic;                                     -- 50MHz main FPGA clock.
         CLOCK_16                  : in    std_logic;                                     -- 16MHz base clock for video timing and gate clocking.
 
         -- V[name] = Voltage translated signals which mirror the mainboard signals but at a lower voltage.
         -- Addres Bus
-		VADDR                     : in    std_logic_vector(13 downto 0);                 -- Z80 Address bus, multiplexed with video address.
+        VADDR                     : in    std_logic_vector(13 downto 0);                 -- Z80 Address bus, multiplexed with video address.
 
         -- Data Bus
-		VDATA                     : inout std_logic_vector(7 downto 0);                  -- Z80 Data bus from mainboard Colour Card CD connector..
+        VDATA                     : inout std_logic_vector(7 downto 0);                  -- Z80 Data bus from mainboard Colour Card CD connector..
 
         -- Control signals.
         VMEM_CSn                  : in    std_logic;                                     -- Extended memory select to FPGA.
-        VVRAM_CS_INn              : in    std_logic;                                     -- Chip Select for access to the Video RAM from the mainboard IC15 socket.
-		VIORQn                    : in    std_logic;                                     -- IORQn to FPGA.
-		VRDn                      : in    std_logic;                                     -- RDn to FPGA.
-        VCSn                      : in    std_logic;                                     -- Video RAM Attribute Chip Select (CSn) to FPGA.
-		VGTn                      : in    std_logic;                                     -- Video Gate (GTn) 
-		VWRn                      : in    std_logic;                                     -- WRn to FPGA.
-		VRESETn                   : in    std_logic;                                     -- Reset to FPGA.
+      --VVRAM_CS_INn              : in    std_logic;                                     -- Chip Select for access to the Video RAM from the mainboard IC15 socket.
+        VIORQn                    : in    std_logic;                                     -- IORQn to FPGA.
+        VRDn                      : in    std_logic;                                     -- RDn to FPGA.
+      --VCSn                      : in    std_logic;                                     -- Video RAM Attribute Chip Select (CSn) to FPGA.
+      --VGTn                      : in    std_logic;                                     -- Video Gate (GTn) 
+        VWRn                      : in    std_logic;                                     -- WRn to FPGA.
+        VRESETn                   : in    std_logic;                                     -- Reset to FPGA.
 
         -- VGA signals.
-		VGA_R                     : out   std_logic_vector(3 downto 0);                  -- 16 level Red output.
-		VGA_G                     : out   std_logic_vector(3 downto 0);                  -- 16 level Green output.
-		VGA_B                     : out   std_logic_vector(3 downto 0);                  -- 16 level Blue output.
-		VGA_HS                    : out   std_logic;                                     -- Horizontal sync.
-		VGA_VS                    : out   std_logic;                                     -- Vertical sync.
+        VGA_R                     : out   std_logic_vector(3 downto 0);                  -- 16 level Red output.
+        VGA_G                     : out   std_logic_vector(3 downto 0);                  -- 16 level Green output.
+        VGA_B                     : out   std_logic_vector(3 downto 0);                  -- 16 level Blue output.
+        VGA_HS                    : out   std_logic;                                     -- Horizontal sync.
+        VGA_VS                    : out   std_logic;                                     -- Vertical sync.
 
         -- Composite signals.
-		CSYNCn                    : out   std_logic;                                     -- Composite sync negative polarity.
-		CSYNC                     : out   std_logic;                                     -- Comnposite sync.
+        CSYNCn                    : out   std_logic;                                     -- Composite sync negative polarity.
+        CSYNC                     : out   std_logic;                                     -- Comnposite sync.
         VSRVIDEO_OUT              : out   std_logic;                                     -- Video out from 74LS165 on mainboard, pre-GATE.
         VHBLNK_OUTn               : out   std_logic;                                     -- Horizontal blanking.
         VHSY_OUT                  : out   std_logic;                                     -- Horizontal Sync.
         VSYNCH_OUT                : out   std_logic;                                     -- Veritcal Sync.
-        VVBLNK_OUTn               : out   std_logic;                                     -- Vertical blanking.
+        VVBLNK_OUTn               : out   std_logic                                      -- Vertical blanking.
 
         -- Reserved.
-        TBA                       : in    std_logic_vector(9 downto 0)                   -- Reserved signal paths to the CPLD.
-
-        -- JTAG / ISP
-		--TCK                     : in    std_logic;
-		--TDI                     : in    std_logic;
-		--TDO                     : out   std_logic;
-		--TMS                     : in    std_logic 
+      --TBA                       : in    std_logic_vector(4 downto 0)                   -- Reserved signal paths to the CPLD.
     );
 END entity;
 
-architecture rtl of VideoControllerCPLD is
+architecture rtl of VideoControllerFPGA is
 
     signal SYS_CLK                :       std_logic;
+    signal VIDCLK_8MHZ            :       std_logic;
+    signal VIDCLK_16MHZ           :       std_logic;
+    signal VIDCLK_25_175MHZ       :       std_logic;
+    signal VIDCLK_40MHZ           :       std_logic;
+    signal VIDCLK_65MHZ           :       std_logic;
     signal PLL_LOCKED             :       std_logic;
-
+    signal PLL_LOCKED2            :       std_logic;
+--    signal PLL_LOCKED3            :       std_logic;
+    signal RESETn                 :       std_logic;
+    signal RESET_COUNTER          :       unsigned(1 downto 0);
 begin
 
-    vcpll : entity work.Clock_50to100
+    -- Instantiate a PLL to generate the system clock and base video clocks.
+    --
+    vcpll1 : entity work.Video_Clock
     port map
     (
-         inclk0                  => CLOCK_50,
+         inclk0                  => CLOCK_16,
+         areset                  => not VRESETn,
          c0                      => SYS_CLK,
+         c1                      => VIDCLK_8MHZ,
+         c2                      => VIDCLK_16MHZ,
+         c3                      => VIDCLK_40MHZ,
          locked                  => PLL_LOCKED
     );
+
+    -- Instantiate a 2nd PLL to generate additional video clocks for VGA and Sharp MZ700 modes.
+    vcpll2 : entity work.Video_Clock_II
+    port map
+    (
+         inclk0                  => SYS_CLK,
+         areset                  => not VRESETn,
+         c0                      => VIDCLK_65MHZ,
+         c1                      => VIDCLK_25_175MHZ,
+         locked                  => PLL_LOCKED2
+    );
+
+    -- Instantiate a 3rd PLL to generate additional video clocks for VGA modes.
+--    vcpll3 : entity work.Video_Clock_III
+--    port map
+--    (
+--         inclk0                  => SYS_CLK,
+--         areset                  => not VRESETn,
+--         locked                  => PLL_LOCKED3
+--    );
+
+    -- Add the Serial Flash Loader megafunction to enable in-situ programming of the EPCS16 configuration memory.
+    --
+    sfl : entity work.sfl
+    port map
+    (
+        noe_in                      => '0' 
+    );
+
 
     vcToplevel : entity work.VideoController
     --generic map
@@ -107,44 +143,68 @@ begin
     port map
     (    
         -- Primary and video clocks.
-        SYS_CLK                  => SYS_CLK,                                             -- 50MHz main FPGA clock.
-        VID_CLK                  => CLOCK_16,                                            -- 16MHz base clock for video timing and gate clocking.
+        SYS_CLK                  => SYS_CLK,                                             -- 100MHz main FPGA clock.
+        IF_CLK                   => CLOCK_16,                                            -- 16MHz interface clock.
+        VIDCLK_8MHZ              => VIDCLK_8MHZ,                                         -- 8MHz base clock for video timing and gate clocking.
+        VIDCLK_16MHZ             => VIDCLK_16MHZ,                                        -- 16MHz base clock for video timing and gate clocking.
+        VIDCLK_65MHZ             => VIDCLK_65MHZ,                                        -- 65MHz base clock for video timing and gate clocking.
+        VIDCLK_25_175MHZ         => VIDCLK_25_175MHZ,                                    -- 25.175MHz base clock for video timing and gate clocking.
+        VIDCLK_40MHZ             => VIDCLK_40MHZ,                                        -- 40MHz base clock for video timing and gate clocking.
 
         -- V[name] = Voltage translated signals which mirror the mainboard signals but at a lower voltage.
         -- Addres Bus
-		VADDR                    => VADDR,                                               -- Z80 Address bus, multiplexed with video address.
+        VADDR                    => VADDR,                                               -- Z80 Address bus, multiplexed with video address.
 
         -- Data Bus
-		VDATA                    => VDATA,                                               -- Z80 Data bus from mainboard Colour Card CD connector..
+        VDATA                    => VDATA,                                               -- Z80 Data bus from mainboard Colour Card CD connector..
 
         -- Control signals.
         VMEM_CSn                 => VMEM_CSn,                                            -- Extended memory select to FPGA.
-        VVRAM_CS_INn             => VVRAM_CS_INn,                                        -- Chip Select for access to the Video RAM from the mainboard IC15 socket.
-		VIORQn                   => VIORQn,                                              -- IORQn to FPGA.
-		VRDn                     => VRDn,                                                -- RDn to FPGA.
-        VCSn                     => VCSn,                                                -- Video RAM Attribute Chip Select (CSn) to FPGA.
-		VGTn                     => VGTn,                                                -- Video Gate (GTn) 
-		VWRn                     => VWRn,                                                -- WRn to FPGA.
-		VRESETn                  => VRESETn,                                             -- Reset to FPGA.
+      --VVRAM_CS_INn             => VVRAM_CS_INn,                                        -- Chip Select for access to the Video RAM from the mainboard IC15 socket.
+        VIORQn                   => VIORQn,                                              -- IORQn to FPGA.
+        VRDn                     => VRDn,                                                -- RDn to FPGA.
+      --VCSn                     => VCSn,                                                -- Video RAM Attribute Chip Select (CSn) to FPGA.
+      --VGTn                     => VGTn,                                                -- Video Gate (GTn) 
+        VWRn                     => VWRn,                                                -- WRn to FPGA.
+        VRESETn                  => RESETn,                                              -- Reset to FPGA.
 
         -- VGA signals.
-		VGA_R                    => VGA_R,                                               -- 16 level Red output.
-		VGA_G                    => VGA_G,                                               -- 16 level Green output.
-		VGA_B                    => VGA_B,                                               -- 16 level Blue output.
-		VGA_HS                   => VGA_HS,                                              -- Horizontal sync.
-		VGA_VS                   => VGA_VS,                                              -- Vertical sync.
+        VGA_R                    => VGA_R,                                               -- 16 level Red output.
+        VGA_G                    => VGA_G,                                               -- 16 level Green output.
+        VGA_B                    => VGA_B,                                               -- 16 level Blue output.
+        VGA_HS                   => VGA_HS,                                              -- Horizontal sync.
+        VGA_VS                   => VGA_VS,                                              -- Vertical sync.
 
         -- Composite signals.
-		CSYNCn                   => CSYNCn,                                              -- Composite sync negative polarity.
-		CSYNC                    => CSYNC,                                               -- Comnposite sync.
+        CSYNCn                   => CSYNCn,                                              -- Composite sync negative polarity.
+        CSYNC                    => CSYNC,                                               -- Comnposite sync.
         VSRVIDEO_OUT             => VSRVIDEO_OUT,                                        -- Video out from 74LS165 on mainboard, pre-GATE.
         VHBLNK_OUTn              => VHBLNK_OUTn,                                         -- Horizontal blanking.
         VHSY_OUT                 => VHSY_OUT,                                            -- Horizontal Sync.
         VSYNCH_OUT               => VSYNCH_OUT,                                          -- Veritcal Sync.
-        VVBLNK_OUTn              => VVBLNK_OUTn,                                         -- Vertical blanking.
+        VVBLNK_OUTn              => VVBLNK_OUTn                                          -- Vertical blanking.
 
         -- Reserved.
-        TBA                      => TBA                                                  -- Reserved signals.        
+      --TBA                      => TBA                                                  -- Reserved signals.        
     );
+
+    -- Process to reset the FPGA based on the external RESET trigger, PLL's being locked
+    -- and a counter to set minimum width.
+    --
+    FPGARESET: process(VRESETn, CLOCK_16, PLL_LOCKED, PLL_LOCKED2) --, PLL_LOCKED3)
+    begin
+        if VRESETn = '0' then
+            RESET_COUNTER        <= (others => '1');
+            RESETn               <= '0';
+        elsif PLL_LOCKED = '1' and PLL_LOCKED2 = '1' then -- and PLL_LOCKED3 = '1' then
+            if rising_edge(CLOCK_16) then
+                if RESET_COUNTER /= 0 then
+                    RESET_COUNTER <= RESET_COUNTER - 1;
+                else
+                    RESETn        <= '1';
+                end if;
+            end if;
+        end if;
+    end process;
 
 end architecture;

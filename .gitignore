@@ -1,7 +1,7 @@
-CPLD/.VideoInterface.vhd.swp
-CPLD/.VideoInterface_Toplevel.vhd.swp
-CPLD/.VideoInterface_pkg.vhd.swp
-CPLD/build/.VideoInterface.qsf.swp
+*.swp
+.*.swp
+*.swo
+.*.swo
 CPLD/build/VideoInterface.csv
 CPLD/build/VideoInterface.qsf.bak
 CPLD/build/db/
@@ -9,10 +9,6 @@ CPLD/build/incremental_db/
 CPLD/build/old/
 CPLD/build/output_files/
 CPLD/build/simulation/
-FPGA/.VideoController.vhd.swp
-FPGA/.VideoController_Toplevel.vhd.swp
-FPGA/.VideoController_pkg.vhd.swp
-FPGA/build/.VideoController.qsf.swp
 FPGA/build/.qsys_edit/
 FPGA/build/Clock_50to100.cnx
 FPGA/build/Clock_50to100.cnxerr
@@ -46,3 +42,20 @@ docker/QuartusPrime/local/
 docker/QuartusPrime/quartus_docker.sh
 pin2lib.py
 schematics/MZ80_80CLR_v2.0a.pdf
+CPLD/VideoInterface.vhd.orig
+CPLD/VideoInterface_Toplevel.vhd.orig
+CPLD/VideoInterface_pkg.vhd.orig
+CPLD/build/VideoInterface.out.sdc
+CPLD/build/VideoInterface.qsf.orig
+CPLD/build/VideoInterface_constraints.sdc.orig
+FPGA/VideoController.vhd.inpro
+FPGA/VideoController.vhd.orig
+FPGA/VideoController_Toplevel.vhd.orig
+FPGA/VideoController_pkg.vhd.orig
+FPGA/build/VideoController-Unconstrained Paths.rpt
+FPGA/build/VideoController.qsf.orig
+FPGA/build/VideoController_constraints.sdc.orig
+FPGA/build/abc.qip
+FPGA/build/greybox_tmp/
+video_22082020.tar.gz
+

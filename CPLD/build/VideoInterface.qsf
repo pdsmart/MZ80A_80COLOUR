@@ -37,7 +37,7 @@
 
 
 set_global_assignment -name FAMILY MAX7000AE
-set_global_assignment -name DEVICE "EPM7512AETC144-7"
+set_global_assignment -name DEVICE "EPM7512AETC144-12"
 set_global_assignment -name TOP_LEVEL_ENTITY VideoInterfaceCPLD
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION "13.0 SP1"
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "16:29:32  JUNE 24, 2020"
@@ -56,24 +56,24 @@ set_global_assignment -name MAX7000_DEVICE_IO_STANDARD LVTTL
 
 # Global clocks.
 # ==============
-set_location_assignment PIN_125 -to VID_CLK
+set_location_assignment PIN_125 -to CLOCK_16
 
 # Z80 Address Bus
 # ===============
-set_location_assignment PIN_87 -to A[13]
-set_location_assignment PIN_88 -to A[12]
-set_location_assignment PIN_90 -to A[11]
-set_location_assignment PIN_111 -to A[10]
-set_location_assignment PIN_112 -to A[9]
-set_location_assignment PIN_113 -to A[8]
-set_location_assignment PIN_114 -to A[7]
-set_location_assignment PIN_116 -to A[6]
-set_location_assignment PIN_117 -to A[5]
-set_location_assignment PIN_118 -to A[4]
-set_location_assignment PIN_119 -to A[3]
-set_location_assignment PIN_120 -to A[2]
-set_location_assignment PIN_121 -to A[1]
-set_location_assignment PIN_122 -to A[0]
+#set_location_assignment PIN_90 -to A[13]
+#set_location_assignment PIN_88 -to A[12]
+#set_location_assignment PIN_87 -to A[11]
+#set_location_assignment PIN_98 -to A[10]
+#set_location_assignment PIN_101 -to A[9]
+#set_location_assignment PIN_103 -to A[8]
+#set_location_assignment PIN_106 -to A[7]
+#set_location_assignment PIN_108 -to A[6]
+#set_location_assignment PIN_110 -to A[5]
+#set_location_assignment PIN_112 -to A[4]
+#set_location_assignment PIN_114 -to A[3]
+#set_location_assignment PIN_117 -to A[2]
+#set_location_assignment PIN_119 -to A[1]
+#set_location_assignment PIN_121 -to A[0]
 
 
 # Video Interface Address Bus
@@ -102,25 +102,31 @@ set_location_assignment PIN_9 -to CLK_31_5K_OUT
 # Z80 control signals
 # ===================
 set_location_assignment PIN_92 -to CSn
-set_location_assignment PIN_94 -to GTn
-set_location_assignment PIN_83 -to IORQn
-set_location_assignment PIN_82 -to MEM_CSn
-set_location_assignment PIN_86 -to RESETn
-set_location_assignment PIN_127 -to GCLRn
+set_location_assignment PIN_93 -to GTn
+#set_location_assignment PIN_84 -to IORQn
+#set_location_assignment PIN_83 -to MEM_CSn
+set_location_assignment PIN_86 -to MB_RESETn
+set_location_assignment PIN_127 -to RESETn
 set_location_assignment PIN_91 -to RDn
-set_location_assignment PIN_97 -to WRn
-set_location_assignment PIN_12 -to VRAM_CS_INn
+#set_location_assignment PIN_96 -to WRn
+set_location_assignment PIN_16 -to VRAM_CS_INn
+
+set_location_assignment PIN_90 -to INDATA[3]
+set_location_assignment PIN_88 -to INDATA[2]
+set_location_assignment PIN_87 -to INDATA[1]
+set_location_assignment PIN_84 -to OUTCLK
+set_location_assignment PIN_83 -to INDATA[0]
 
 # Z80 Data Bus
 # ============
-set_location_assignment PIN_101 -to D[7]
-set_location_assignment PIN_102 -to D[6]
-set_location_assignment PIN_103 -to D[5]
-set_location_assignment PIN_106 -to D[4]
-set_location_assignment PIN_107 -to D[3]
-set_location_assignment PIN_108 -to D[2]
-set_location_assignment PIN_109 -to D[1]
-set_location_assignment PIN_110 -to D[0]
+set_location_assignment PIN_107 -to D[7]
+set_location_assignment PIN_109 -to D[6]
+set_location_assignment PIN_111 -to D[5]
+set_location_assignment PIN_113 -to D[4]
+set_location_assignment PIN_116 -to D[3]
+set_location_assignment PIN_118 -to D[2]
+set_location_assignment PIN_120 -to D[1]
+set_location_assignment PIN_122 -to D[0]
 
 # Video Data Bus
 # ==============
@@ -140,33 +146,41 @@ set_location_assignment PIN_19 -to VRAMD[6]
 set_location_assignment PIN_21 -to VRAMD[5]
 set_location_assignment PIN_22 -to VRAMD[4]
 set_location_assignment PIN_23 -to VRAMD[3]
-set_location_assignment PIN_16 -to VRAMD[2]
-set_location_assignment PIN_14 -to VRAMD[1]
-set_location_assignment PIN_15 -to VRAMD[0]
+set_location_assignment PIN_14 -to VRAMD[2]
+set_location_assignment PIN_12 -to VRAMD[1]
+set_location_assignment PIN_11 -to VRAMD[0]
 
 # Mainboard video signals on the CN1 connector.
 # =============================================
-set_location_assignment PIN_93 -to MB_HBLNKn
+set_location_assignment PIN_94 -to MB_HBLNKn
 set_location_assignment PIN_100 -to MB_LOAD
-set_location_assignment PIN_96 -to MB_SYNCH
-set_location_assignment PIN_98 -to MB_V_HBLNKn
-set_location_assignment PIN_99 -to MB_VIDEO
+set_location_assignment PIN_97 -to MB_SYNCH
+set_location_assignment PIN_99 -to MB_V_HBLNKn
+set_location_assignment PIN_102 -to MB_VIDEO
+
+# Mainboard video signals on the CN1 connector passed to the FPGA.
+# ================================================================
+set_location_assignment PIN_75 -to VMB_HBLNKn
+set_location_assignment PIN_74 -to VMB_LOAD
+set_location_assignment PIN_72 -to VMB_SYNCH
+set_location_assignment PIN_71 -to VMB_V_HBLNKn
+set_location_assignment PIN_70 -to VMB_VIDEO
  
 # Generated video signals.
 # ========================
 set_location_assignment PIN_1 -to HBLNK_OUTn
 set_location_assignment PIN_2 -to HSY_OUT
-set_location_assignment PIN_11 -to SRVIDEO_OUT
+set_location_assignment PIN_15 -to SRVIDEO_OUT
 set_location_assignment PIN_8 -to SYNCH_OUT
 set_location_assignment PIN_6 -to VBLNK_OUTn
 
 # FPGA Generated video signals.
 # =============================
-set_location_assignment PIN_77 -to VHBLNK_OUTn
-set_location_assignment PIN_80 -to VHSY_OUT
-set_location_assignment PIN_84 -to VSRVIDEO_OUT
-set_location_assignment PIN_79 -to VSYNCH_OUT
-set_location_assignment PIN_78 -to VVBLNK_OUTn
+set_location_assignment PIN_80 -to VHBLNK_OUTn
+set_location_assignment PIN_79 -to VHSY_OUT
+set_location_assignment PIN_81 -to VSRVIDEO_OUT
+set_location_assignment PIN_78 -to VSYNCH_OUT
+set_location_assignment PIN_77 -to VVBLNK_OUTn
 
 # Video control signals.
 # ======================
@@ -181,19 +195,19 @@ set_location_assignment PIN_48 -to VWRn
 
 # Reserved.
 # =========
-set_location_assignment PIN_75 -to TBA[9]
-set_location_assignment PIN_74 -to TBA[8]
-set_location_assignment PIN_72 -to TBA[7]
-set_location_assignment PIN_71 -to TBA[6]
-set_location_assignment PIN_70 -to TBA[5]
-set_location_assignment PIN_69 -to TBA[4]
-set_location_assignment PIN_68 -to TBA[3]
-set_location_assignment PIN_67 -to TBA[2]
-set_location_assignment PIN_66 -to TBA[1]
-set_location_assignment PIN_65 -to TBA[0]
+#set_location_assignment PIN_69 -to TBA[4]
+#set_location_assignment PIN_68 -to TBA[3]
+#set_location_assignment PIN_67 -to TBA[2]
+#set_location_assignment PIN_66 -to TBA[1]
+#set_location_assignment PIN_65 -to TBA[0]
 
 set_global_assignment -name VHDL_FILE ../VideoInterface_Toplevel.vhd
 set_global_assignment -name VHDL_FILE ../VideoInterface_pkg.vhd
 set_global_assignment -name VHDL_FILE ../VideoInterface.vhd
 set_global_assignment -name SDC_FILE VideoInterface_constraints.sdc
 
+set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS OFF
+set_global_assignment -name MAX7000_OPTIMIZATION_TECHNIQUE AREA
+set_global_assignment -name AUTO_RESOURCE_SHARING OFF
+set_global_assignment -name PRE_MAPPING_RESYNTHESIS OFF
+set_global_assignment -name USE_LOGICLOCK_CONSTRAINTS_IN_BALANCING OFF

@@ -41,17 +41,17 @@ entity VideoInterface is
     --);
     port (    
         -- Primary video clock.
-        VID_CLK                   : in    std_logic;                                     -- 16MHz base clock for video timing and gate clocking.
+        CLOCK_16                  : in    std_logic;                                     -- 16MHz base clock for video timing and gate clocking.
 
         -- Z80 Address and Data. Address is muxed with video addressing, not direct.
-        A                         : in    std_logic_vector(13 downto 0);                 -- Z80 Address bus, multiplexed with video address. 13..11 come from the tranZPUter board.
+     -- A                         : in    std_logic_vector(10 downto 0);                 -- Z80 Address bus, multiplexed with video address. 13..11 come from the tranZPUter board.
         D                         : inout std_logic_vector(7 downto 0);                  -- Z80 Data bus, from the Colour Card CN! connector.
 
         -- Z80 Control signals.
-        WRn                       : in    std_logic;                                     -- Z80 Write signal from the Colour Card CN! connector.
+     -- WRn                       : in    std_logic;                                     -- Z80 Write signal from the Colour Card CN! connector.
         RDn                       : in    std_logic;                                     -- Z80 Read signal from the Colour Card CN! connector.
         RESETn                    : in    std_logic;                                     -- Z80 RESET signal from the tranZPUter board.
-        IORQn                     : in    std_logic;                                     -- Z80 IORQ signal from the tranZPUter board.
+     -- IORQn                     : in    std_logic;                                     -- Z80 IORQ signal from the tranZPUter board.
 
         -- Video and Mainboard signals.
         SRVIDEO_OUT               : out   std_logic;                                     -- Shift Register 74LS165 Video Output onto mainboard.
@@ -70,7 +70,9 @@ entity VideoInterface is
         VRAM_CS_INn               : in    std_logic;                                     -- Chip Select for access to the Video RAM from the mainboard IC15 socket.
         GTn                       : in    std_logic;                                     -- GATE signal from the Colour Card CN! connector.
         CSn                       : in    std_logic;                                     -- Chip Select for the Video Attribute RAM from the Colour Card CN! connector.
-        MEM_CSn                   : in    std_logic;                                     -- Extended memory select for region 0xE000 - 0xFFFF from the tranZPUter board.
+     -- MEM_CSn                   : in    std_logic;                                     -- Extended memory select for region 0xE000 - 0xFFFF from the tranZPUter board.
+        OUTCLK                    : out   std_logic;                                     -- CPU signal serialiser clock.
+        INDATA                    : in    std_logic_vector(3 downto 0);                  -- Incoming serialised CPU signals.
 
         -- V[name] = Voltage translated signals which mirror the mainboard signals but at a lower voltage.
         VADDR                     : out   std_logic_vector(13 downto 0);                 -- Z80 Address bus, multiplexed with video address.
@@ -83,22 +85,21 @@ entity VideoInterface is
         VCSn                      : out   std_logic;                                     -- Video RAM Attribute Chip Select (CSn) to FPGA.
         VGTn                      : out   std_logic;                                     -- Video Gate (GTn) 
         VWRn                      : out   std_logic;                                     -- WRn to FPGA.
-        VRESETn                   : out   std_logic;                                     -- Reset to FPGA.
         --
         VSRVIDEO_OUT              : in    std_logic;                                     -- Video out from 74LS165 on mainboard, pre-GATE.
         VHBLNK_OUTn               : in    std_logic;                                     -- Horizontal blanking.
         VHSY_OUT                  : in    std_logic;                                     -- Horizontal Sync.
         VSYNCH_OUT                : in    std_logic;                                     -- Veritcal Sync.
         VVBLNK_OUTn               : in    std_logic;                                     -- Vertical blanking.
+        --
+        VMB_HBLNKn                : out   std_logic;                                     -- Horizontal Blanking from the Colour Card CN! connector.
+        VMB_SYNCH                 : out   std_logic;                                     -- Vertical sync from the Colour Card CN! connector.
+        VMB_V_HBLNKn              : out   std_logic;                                     -- combined vertical/horizontal sync from the Colour Card CN! connector.
+        VMB_VIDEO                 : out   std_logic;                                     -- Video (74LS165 output combined with GATE) from the Colour Card CN! connector.
+        VMB_LOAD                  : out   std_logic                                      -- shift register load signal from the Colour Card CN! connector.
 
         -- Reserved.
-        TBA                       : in    std_logic_vector(9 downto 0)                   -- Reserved signals.
-
-        -- JTAG / ISP
-        --TCK                     : in    std_logic;
-        --TDI                     : in    std_logic;
-        --TDO                     : out   std_logic;
-        --TMS                     : in    std_logic 
+      --TBA                       : in    std_logic_vector(4 downto 0)                   -- Reserved signals.
     );
 end entity;
 
@@ -108,6 +109,13 @@ architecture rtl of VideoInterface is
     signal CLK2Mi                 :       std_logic;                                     -- 2MHz used for the CPU main frequency.
     signal CLK1Mi                 :       std_logic;                                     -- 1MHz used for video timing.
     signal CLK31500i              :       std_logic;                                     -- 8253 Clock base frequency used for RTC,
+
+    signal IORQn                  :       std_logic;
+    signal MEM_CSn                :       std_logic;
+    signal INBUF                  :       std_logic_vector(11 downto 0);
+    signal RCV_CYCLE              :       integer range 0 to 1;
+    signal INCOUNT                :       integer range 0 to 3;
+    signal VA                     :       std_logic_vector(13 downto 0);
 
     function to_std_logic(L: boolean) return std_logic is
     begin
@@ -127,95 +135,167 @@ begin
     -- or converter. Given the pricing of the MAX7000 series chips it is easier and cheaper to use a CPLD to perform the voltage translation as they are 5V tolerant
     -- and the mainboard accepts 3.3V output voltages.
     --
-    VADDR            <= A;
-    VRESETn          <= RESETn;
-    VIORQn           <= IORQn;
-    VRDn             <= RDn;
-    VWRn             <= WRn;
-    VGTn             <= GTn;
-    VCSn             <= CSn;
-    VMEM_CSn         <= MEM_CSn;
-    VVRAM_CS_INn     <= VRAM_CS_INn;
+    VADDR                         <= VA;
 
     -- Data bus is muxed between the Z80 data bus and VRAMD which is the gated data bus after the video buffers.
-    VDATA            <= VRAMD when WRn = '0' and VRAM_CS_INn = '0'
-                        else 
-                        D when WRn = '0' and VRAM_CS_INn = '1'
-                        else (others => 'Z');
-    D                <= VRAMD when RDn = '0' and VRAM_CS_INn = '0'
-                        else
-                        VDATA when RDn = '0' and VRAM_CS_INn = '1'
-                        else (others => 'Z');
-    VRAMD            <= VDATA when RDn = '0' and VRAM_CS_INn = '0'
-                        else (others => 'Z');
+    -- The write signal WRn from the motherboard is actually a gated Write for the Video and Attribute RAM. The logic has been updated in the tranZPUter to
+    -- combine MEM_CSn with Z80 RD/WR such that use of RDn = 0 for read and RDn = 1 for write works as intended for all memory/IO operations.
+    --
+    VDATA                         <= D     when RDn = '1' and MEM_CSn = '0'                                        -- All memory write data sent to FPGA in region D000:FFFF
+                                     else
+                                     D     when RDn = '1' and IORQn = '0'                                          -- All I/O write data sent to FPGA.
+                                     else
+                                     (others => 'Z');
+    D                             <= VDATA when RDn = '0' and MEM_CSn = '0' and VA(13 downto 11) = "011"            -- D800:DFFF via data bus.
+                                     else
+                                     VDATA when RDn = '0' and IORQn = '0'  and ((VA(7 downto 4) = "1111" and VA(3 downto 1) /= "111") or VA(7 downto 5) = "000") -- I/O region F0:FD or 00:1F
+                                     else
+                                     (others => 'Z');
+    VRAMD                         <= VDATA when RDn = '0' and MEM_CSn = '0' and VA(13 downto 11) = "010"           -- D000:D7FF via IC16 74LS245.
+                                     else
+                                     (others => 'Z');
+    VIORQn                        <= IORQn;
+    VRDn                          <= RDn;
+    VWRn                          <= '0' when RDn = '1' and (MEM_CSn = '0' or IORQn = '0')
+                                     else '1';
+    VGTn                          <= GTn;
+    VCSn                          <= CSn;
+    VMEM_CSn                      <= MEM_CSn;
+    VVRAM_CS_INn                  <= VRAM_CS_INn;
 
-    SRVIDEO_OUT      <= '1';
-    HBLNK_OUTn       <= '1';
-    HSY_OUT          <= '1';
-    SYNCH_OUT        <= '1';
-    VBLNK_OUTn       <= '1';
+
+    -- A tranZPUter signal serializer. Signals required by the Video Module but not accessible physically (without hardware hacks) are captured and serialised by the tranZPUter
+    -- as a set of 4 x 4 blocks, clocked by the video module, As the mainboard can not run faster than 4MHz, a 16MHz serialiser clock should be sufficient to bring the signals across 
+    -- but can be increased as necessary.
+    -- Reset synchronises the Video Module CPLD with the tranZPUter CPLD and the signals are sent during valid mainboard accesses. During tranZPUter accesses, both
+    -- IORQn and MEM_CSn are sent as 0, an invalid state, to indicate the signals are not valid.
+    --
+    SIGNALSERIALIZER: process(RESETn, CLOCK_16)
+    begin
+        if RESETn = '0' then
+            OUTCLK                      <= '0';
+            RCV_CYCLE                   <= 0;
+            INCOUNT                     <= 3;
+            INBUF                       <= "000000000000";
+            VA                          <= (others => '0');
+            IORQn                       <= '1';
+            MEM_CSn                     <= '1';
+
+        elsif rising_edge(CLOCK_16) then
+
+            case RCV_CYCLE is
+                -- Cycle starts by raising the clock, the tranZPUter sees the rising edge and captures the 16 signals and places the 
+                -- first block of 4 onto the mux-bus.
+                when 0 =>
+                    OUTCLK              <= '1';
+                    RCV_CYCLE           <= 1;
+
+                -- After 1 clock period, time for the signals to be placed and settle, capture them, returning the clock to low state.
+                when 1 =>
+                    OUTCLK              <= '0';
+                    if INCOUNT > 0 then
+                        INBUF(7 downto 0) <= INBUF(11 downto 4);
+                        INBUF(11 downto 8) <= INDATA;
+                        INCOUNT         <= INCOUNT - 1;
+                    else
+                        -- If MEM_CSn and IORQn are both zero it indicates an invalid data set so dont act on it.
+                        --
+                        if INDATA(3 downto 2) /= "00" then
+                            VA(13 downto 0) <= INDATA(1 downto 0) & INBUF(11 downto 0);
+                            MEM_CSn     <= INDATA(2);
+                            IORQn       <= INDATA(3);
+                        else
+                            VA(13 downto 0) <= (others => '0');
+                            MEM_CSn     <= '1';
+                            IORQn       <= '1';
+                        end if;
+                        INCOUNT         <= 3;
+                    end if;
+                    RCV_CYCLE           <= 0;
+            end case;
+        end if;
+    end process;
+
+
+    -- Signals originating on the mainboard or the FPGA are brougnt into the clock domain of the CPLD, which is also the clock domain of the mainboard
+    -- as the CPLD provides the mainboard clocks.
+    --
+    VIDEOSIGNALS: process(RESETn, CLOCK_16)
+    begin
+        if RESETn = '0' then
+            SRVIDEO_OUT                 <= '0';
+            HBLNK_OUTn                  <= '0';
+            HSY_OUT                     <= '0';
+            SYNCH_OUT                   <= '0';
+            VBLNK_OUTn                  <= '0';
+            VMB_HBLNKn                  <= '0';
+            VMB_LOAD                    <= '0';
+            VMB_SYNCH                   <= '0';
+            VMB_V_HBLNKn                <= '0';
+            VMB_VIDEO                   <= '0';
+
+        elsif rising_edge(CLOCK_16) then
+            SRVIDEO_OUT                 <= VSRVIDEO_OUT;
+            HBLNK_OUTn                  <= VHBLNK_OUTn;
+            HSY_OUT                     <= VHSY_OUT;
+            SYNCH_OUT                   <= VSYNCH_OUT;
+            VBLNK_OUTn                  <= VVBLNK_OUTn;
+
+            VMB_HBLNKn                  <= MB_HBLNKn;
+            VMB_LOAD                    <= MB_LOAD;
+            VMB_SYNCH                   <= MB_SYNCH;
+            VMB_V_HBLNKn                <= MB_V_HBLNKn;
+            VMB_VIDEO                   <= MB_VIDEO;
+        end if;
+    end process;
 
     -- Process to subdivide the video clock into the frequencies required by the main board.
     -- This logic was originally performed by the MB14298 Gate Array on the mainboard.
     --
-    process(RESETn, VID_CLK, CLK2Mi, CLK1Mi, CLK31500i)
-        variable counter2Mi        : unsigned(4 downto 0);                -- Binary divider to create 2Mi clock.
-        variable counter1Mi        : unsigned(5 downto 0);                -- Binary divider to create 1Mi clock.
-        variable counter31500i     : unsigned(10 downto 0);               -- Binary divider to create 31500i clock.
+    CLOCKDIVIDER: process(RESETn, CLOCK_16, CLK2Mi, CLK1Mi, CLK31500i)
+        variable counter2Mi             : unsigned(4 downto 0);                -- Binary divider to create 2Mi clock.
+        variable counter1Mi             : unsigned(5 downto 0);                -- Binary divider to create 1Mi clock.
+        variable counter31500i          : unsigned(10 downto 0);               -- Binary divider to create 31500i clock.
     begin
 
         if RESETn = '0' then
-            counter2Mi             := (others => '0');
-            counter1Mi             := (others => '0');
-            counter31500i          := (others => '0');
-            CLK2Mi                 <= '0';
-            CLK1Mi                 <= '0';
-            CLK31500i              <= '0';
+            counter2Mi                  := (others => '0');
+            counter1Mi                  := (others => '0');
+            counter31500i               := (others => '0');
+            CLK2Mi                      <= '0';
+            CLK1Mi                      <= '0';
+            CLK31500i                   <= '0';
 
-        elsif rising_edge(VID_CLK) then
+        elsif rising_edge(CLOCK_16) then
 
             -- 2000000Hz 
-            if counter2Mi = 0 or counter2Mi = 8 then
-                CLK2Mi             <= not CLK2Mi;
-                if counter2Mi  = 8 then
-                    counter2Mi     := (others => '0');
-                else
-                    counter2Mi     := counter2Mi + 1;
-                end if;
+            if counter2Mi = 3 then
+                CLK2Mi                  <= not CLK2Mi;
+                counter2Mi              := (others => '0');
             else
-                counter2Mi         := counter2Mi + 1;
+                counter2Mi              := counter2Mi + 1;
             end if;
 
             -- 1000000Hz 
-            if counter1Mi = 0 or counter1Mi = 8 then
-                CLK1Mi             <= not CLK1Mi;
-                if counter1Mi  = 8 then
-                    counter1Mi     := (others => '0');
-                else
-                    counter1Mi     := counter1Mi + 1;
-                end if;
+            if counter1Mi = 7 then
+                CLK1Mi                  <= not CLK1Mi;
+                counter1Mi              := (others => '0');
             else
-                counter1Mi         := counter1Mi + 1;
+                counter1Mi              := counter1Mi + 1;
             end if;
 
             -- 31500Hz 
-            if counter31500i = 0 or counter31500i = 255 then
-                CLK31500i          <= not CLK31500i;
-
-                if counter31500i  = 255 then
-                    counter31500i  := (others => '0');
-                else
-                    counter31500i  := counter31500i + 1;
-                end if;
+            if counter31500i = 255 then
+                CLK31500i               <= not CLK31500i;
+                counter31500i           := (others => '0');
             else
-                counter31500i      := counter31500i + 1;
+                counter31500i           := counter31500i + 1;
             end if;
         end if;
 
-        CLK_31_5K_OUT    <= CLK31500i;
-        CLK_1MHZ_OUT     <= CLK1Mi;
-        CLK_2MHZ_OUT     <= CLK2Mi;
-
+        CLK_31_5K_OUT             <= CLK31500i;
+        CLK_1MHZ_OUT              <= CLK1Mi;
+        CLK_2MHZ_OUT              <= CLK2Mi;
     end process;
 
 end architecture;
