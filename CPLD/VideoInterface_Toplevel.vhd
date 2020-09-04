@@ -12,6 +12,7 @@
 -- Copyright:       (c) 2018-20 Philip Smart <philip.smart@net2net.org>
 --
 -- History:         June 2020 - Initial creation.
+--                  Sep 2020  - First release. 
 --
 ---------------------------------------------------------------------------------------------------------
 -- This source file is free software: you can redistribute it and-or modify
@@ -37,7 +38,7 @@ use altera.altera_syn_attributes.all;
 entity VideoInterfaceCPLD is
     port (
         -- Primary video clock.
-        CLOCK_16                  : in    std_logic;                                     -- 16MHz base clock for video timing and gate clocking.
+        CLOCK_50                  : in    std_logic;                                     -- 50MHz base clock for system board, video timing and gate clocking.
 
         -- Z80 Address and Data. Address is muxed with video addressing, not direct.
      -- A                         : in    std_logic_vector(10 downto 0);                 -- Z80 Address bus, multiplexed with video address. 13..11 come from the tranZPUter board.
@@ -115,7 +116,7 @@ begin
     port map
     (    
         -- Primary video clock.
-        CLOCK_16        => CLOCK_16,                                                     -- 16MHz base clock for video timing and gate clocking.
+        CLOCK_50        => CLOCK_50,                                                     -- 50MHz base clock for system board, video timing and gate clocking.
 
         -- Z80 Address and Data. Address is muxed with video addressing, not direct.
      -- A               => A,                                                            -- Z80 Address bus, multiplexed with video address. 13..11 come from the tranZPUter board.
@@ -179,12 +180,12 @@ begin
     -- Process to reset the CPLD based on a minimum number of clock cycles to tie in with the FPGA. We dont want the
     -- CPU starting up until the FPGA is ready.
     --
-    CPLDRESET: process(RESETn, MB_RESETn, CLOCK_16)
+    CPLDRESET: process(RESETn, MB_RESETn, CLOCK_50)
     begin
         if RESETn = '0' or MB_RESETn = '0' then
             RESET_COUNTER        <= (others => '1');
             CPLDRESETn           <= '0';
-        elsif rising_edge(CLOCK_16) then
+        elsif rising_edge(CLOCK_50) then
             if RESET_COUNTER /= 0 then
                 RESET_COUNTER    <= RESET_COUNTER - 1;
             else

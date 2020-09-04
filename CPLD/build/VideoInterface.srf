@@ -3,3 +3,4 @@
 { "" "" "" "Found combinational loop of 5 nodes" {  } {  } 0 332125 "" 0 0 "Quartus II" 0 -1 0 ""}
 { "" "" "" "TimeQuest Timing Analyzer does not support the analysis of latches as synchronous elements for the currently selected device family." {  } {  } 0 335095 "" 0 0 "Quartus II" 0 -1 0 ""}
 { "" "" "" "*" {  } {  } 0 10631 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "*" {  } {  } 0 163076 "" 0 0 "Quartus II" 0 -1 0 ""}

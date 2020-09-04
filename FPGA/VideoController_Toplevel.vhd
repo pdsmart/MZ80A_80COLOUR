@@ -13,6 +13,7 @@
 -- Copyright:       (c) 2018-20 Philip Smart <philip.smart@net2net.org>
 --
 -- History:         June 2020 - Initial creation.
+--                  Sep 2020  - First release.
 --
 ---------------------------------------------------------------------------------------------------------
 -- This source file is free software: you can redistribute it and-or modify
@@ -38,7 +39,7 @@ use altera.altera_syn_attributes.all;
 entity VideoControllerFPGA is
     port (
         -- Primary and video clocks.
-        CLOCK_16                  : in    std_logic;                                     -- 16MHz base clock for video timing and gate clocking.
+        CLOCK_50                  : in    std_logic;                                     -- 50MHz base clock for video timing and gate clocking.
 
         -- V[name] = Voltage translated signals which mirror the mainboard signals but at a lower voltage.
         -- Addres Bus
@@ -49,11 +50,8 @@ entity VideoControllerFPGA is
 
         -- Control signals.
         VMEM_CSn                  : in    std_logic;                                     -- Extended memory select to FPGA.
-      --VVRAM_CS_INn              : in    std_logic;                                     -- Chip Select for access to the Video RAM from the mainboard IC15 socket.
         VIORQn                    : in    std_logic;                                     -- IORQn to FPGA.
         VRDn                      : in    std_logic;                                     -- RDn to FPGA.
-      --VCSn                      : in    std_logic;                                     -- Video RAM Attribute Chip Select (CSn) to FPGA.
-      --VGTn                      : in    std_logic;                                     -- Video Gate (GTn) 
         VWRn                      : in    std_logic;                                     -- WRn to FPGA.
         VRESETn                   : in    std_logic;                                     -- Reset to FPGA.
 
@@ -81,6 +79,7 @@ END entity;
 architecture rtl of VideoControllerFPGA is
 
     signal SYS_CLK                :       std_logic;
+    signal IF_CLK                 :       std_logic;
     signal VIDCLK_8MHZ            :       std_logic;
     signal VIDCLK_16MHZ           :       std_logic;
     signal VIDCLK_25_175MHZ       :       std_logic;
@@ -88,27 +87,27 @@ architecture rtl of VideoControllerFPGA is
     signal VIDCLK_65MHZ           :       std_logic;
     signal PLL_LOCKED             :       std_logic;
     signal PLL_LOCKED2            :       std_logic;
---    signal PLL_LOCKED3            :       std_logic;
     signal RESETn                 :       std_logic;
     signal RESET_COUNTER          :       unsigned(1 downto 0);
 begin
 
     -- Instantiate a PLL to generate the system clock and base video clocks.
     --
-    vcpll1 : entity work.Video_Clock
+    VCPLL1 : entity work.Video_Clock
     port map
     (
-         inclk0                  => CLOCK_16,
+         inclk0                  => CLOCK_50,
          areset                  => not VRESETn,
          c0                      => SYS_CLK,
-         c1                      => VIDCLK_8MHZ,
-         c2                      => VIDCLK_16MHZ,
-         c3                      => VIDCLK_40MHZ,
+         c1                      => IF_CLK,
+         c2                      => VIDCLK_8MHZ,
+         c3                      => VIDCLK_16MHZ,
+         c4                      => VIDCLK_40MHZ,
          locked                  => PLL_LOCKED
     );
 
     -- Instantiate a 2nd PLL to generate additional video clocks for VGA and Sharp MZ700 modes.
-    vcpll2 : entity work.Video_Clock_II
+    VCPLL2 : entity work.Video_Clock_II
     port map
     (
          inclk0                  => SYS_CLK,
@@ -118,23 +117,13 @@ begin
          locked                  => PLL_LOCKED2
     );
 
-    -- Instantiate a 3rd PLL to generate additional video clocks for VGA modes.
---    vcpll3 : entity work.Video_Clock_III
---    port map
---    (
---         inclk0                  => SYS_CLK,
---         areset                  => not VRESETn,
---         locked                  => PLL_LOCKED3
---    );
-
     -- Add the Serial Flash Loader megafunction to enable in-situ programming of the EPCS16 configuration memory.
     --
-    sfl : entity work.sfl
+    SFL : entity work.sfl
     port map
     (
         noe_in                      => '0' 
     );
-
 
     vcToplevel : entity work.VideoController
     --generic map
@@ -143,8 +132,8 @@ begin
     port map
     (    
         -- Primary and video clocks.
-        SYS_CLK                  => SYS_CLK,                                             -- 100MHz main FPGA clock.
-        IF_CLK                   => CLOCK_16,                                            -- 16MHz interface clock.
+        SYS_CLK                  => SYS_CLK,                                             -- 120MHz main FPGA clock.
+        IF_CLK                   => IF_CLK,                                              -- 16MHz interface clock.
         VIDCLK_8MHZ              => VIDCLK_8MHZ,                                         -- 8MHz base clock for video timing and gate clocking.
         VIDCLK_16MHZ             => VIDCLK_16MHZ,                                        -- 16MHz base clock for video timing and gate clocking.
         VIDCLK_65MHZ             => VIDCLK_65MHZ,                                        -- 65MHz base clock for video timing and gate clocking.
@@ -160,11 +149,8 @@ begin
 
         -- Control signals.
         VMEM_CSn                 => VMEM_CSn,                                            -- Extended memory select to FPGA.
-      --VVRAM_CS_INn             => VVRAM_CS_INn,                                        -- Chip Select for access to the Video RAM from the mainboard IC15 socket.
         VIORQn                   => VIORQn,                                              -- IORQn to FPGA.
         VRDn                     => VRDn,                                                -- RDn to FPGA.
-      --VCSn                     => VCSn,                                                -- Video RAM Attribute Chip Select (CSn) to FPGA.
-      --VGTn                     => VGTn,                                                -- Video Gate (GTn) 
         VWRn                     => VWRn,                                                -- WRn to FPGA.
         VRESETn                  => RESETn,                                              -- Reset to FPGA.
 
@@ -191,13 +177,13 @@ begin
     -- Process to reset the FPGA based on the external RESET trigger, PLL's being locked
     -- and a counter to set minimum width.
     --
-    FPGARESET: process(VRESETn, CLOCK_16, PLL_LOCKED, PLL_LOCKED2) --, PLL_LOCKED3)
+    FPGARESET: process(VRESETn, CLOCK_50, PLL_LOCKED, PLL_LOCKED2)
     begin
         if VRESETn = '0' then
             RESET_COUNTER        <= (others => '1');
             RESETn               <= '0';
-        elsif PLL_LOCKED = '1' and PLL_LOCKED2 = '1' then -- and PLL_LOCKED3 = '1' then
-            if rising_edge(CLOCK_16) then
+        elsif PLL_LOCKED = '1' and PLL_LOCKED2 = '1' then
+            if rising_edge(CLOCK_50) then
                 if RESET_COUNTER /= 0 then
                     RESET_COUNTER <= RESET_COUNTER - 1;
                 else

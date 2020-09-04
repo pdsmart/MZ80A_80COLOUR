@@ -58,4 +58,7 @@ FPGA/build/VideoController_constraints.sdc.orig
 FPGA/build/abc.qip
 FPGA/build/greybox_tmp/
 video_22082020.tar.gz
-
+CPLD/VideoInterface.vhd.16mhz
+CPLD/VideoInterface_Toplevel.vhd.16mhz
+FPGA/build/core
+FPGA/vidsav

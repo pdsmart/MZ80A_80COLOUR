@@ -20,6 +20,17 @@
 -- Copyright:       (c) 2018-20 Philip Smart <philip.smart@net2net.org>
 --
 -- History:         June 2020 - Initial creation.
+--                  Sep 2020  - Working first version. Slight sync issues on the VGA modes 1 & 2 as
+--                              they use a seperate PLL so sometimes switching to these modes causes
+--                              flicker which can be resolved by just reswitching to the same mode.
+--                              All the MZ80B logic etc has been ported from my Emulator but not yet
+--                              tested as I need to finish implementing the MZ80B mode on the MZ80A
+--                              via the tranZPUter. Will feed back the video output generation into the
+--                              Emulator as the original emulator design has bugs!
+--                              A nice to have would be a seperate video output stream to the internal
+--                              monitor when using VGA modes on the external display but this requires
+--                              another framebuffer and the FPGA hasnt got the resources. Maybe v2.1
+--                              will contain a bigger FPGA (or external RAM)!!!!
 --
 ---------------------------------------------------------------------------------------------------------
 -- This source file is free software: you can redistribute it and-or modify
@@ -36,15 +47,15 @@
 -- along with this program.  If not, see <http:--www.gnu.org-licenses->.
 ---------------------------------------------------------------------------------------------------------
 library ieee;
-library pkgs;
-use ieee.std_logic_1164.all;
-use ieee.std_logic_unsigned.all;
-use ieee.numeric_std.all;
-use work.VideoController_pkg.all;
 library altera;
-use altera.altera_syn_attributes.all;
-LIBRARY altera_mf;
-USE altera_mf.all;
+library altera_mf;
+library pkgs;
+use     ieee.std_logic_1164.all;
+use     ieee.std_logic_unsigned.all;
+use     ieee.numeric_std.all;
+use     work.VideoController_pkg.all;
+use     altera.altera_syn_attributes.all;
+use     altera_mf.all;
 
 entity VideoController is
     --generic (
@@ -68,9 +79,6 @@ entity VideoController is
 
         -- Control signals.
         VMEM_CSn                  : in    std_logic;                                     -- Extended memory select to FPGA.
-      --VVRAM_CS_INn              : in    std_logic;                                     -- Chip Select for access to the Video RAM from the mainboard IC15 socket.
-      --VCSn                      : in    std_logic;                                     -- Video RAM Attribute Chip Select (CSn) to FPGA.
-      --VGTn                      : in    std_logic;                                     -- Video Gate (GTn) 
         VIORQn                    : in    std_logic;                                     -- IORQn to FPGA.
         VRDn                      : in    std_logic;                                     -- RDn to FPGA.
         VWRn                      : in    std_logic;                                     -- WRn to FPGA.
@@ -99,31 +107,26 @@ end entity;
 
 architecture rtl of VideoController is
 
-    type VIDEOLUT is array (integer range 0 to 15, integer range 0 to 18) of integer range 0 to 2000;
 
     -- Constants
     --
     constant MAX_SUBROW          : integer := 8;
-
-    constant VRAMDISABLE         : std_logic := '0';
-    constant GRAMDISABLE         : std_logic := '0';
-    constant VRAMWAIT            : std_logic := '0';
-    constant PCGRAM              : std_logic := '0';
     constant VIDEO_DEBUG         : std_logic := '0';
 
     -- 
     -- Video Timings for different machines and display configuration.
     --
+    type VIDEOLUT is array (integer range 0 to 15, integer range 0 to 18) of integer range 0 to 2000;
     constant FB_PARAMS           : VIDEOLUT := (
 
     -- Display window variables: -
     -- Front porch is included in the <X>_SYNC_START parameters. Back porch is included in the <X>_LINE_END, ie. <X>_LINE_END - <X>_SYNC_END = Back Porch.
     --   0                 1             2                 3                 4                 5            6                 7                8              9             10                 11                   12                    13               14                      15                16                  17                18
     --   H_DSP_START,      H_DSP_END,    H_DSP_WND_START,  H_DSP_WND_END,    V_DSP_START,      V_DSP_END,   V_DSP_WND_START,  V_DSP_WND_END,   H_LINE_END,    V_LINE_END,   MAX_COLUMNS,       H_SYNC_START,        H_SYNC_END,           V_SYNC_START,    V_SYNC_END,             H_POLARITY,       V_POLARITY,         H_PX,             V_PX      			
-      (            0,            320,              0,            320,              0,            200,              0,            200,            511,            259,         40,                320  + 73,        320 + 73  + 45,           200 + 19,      200 + 19 + 4,              0,               0,                0,               0),      -- 0  MZ80K/C/1200/A machines have a monochrome 60Hz display with scan of 512 x 260 for a 320x200 viewable area.
-      (            0,            640,              0,            640,              0,            200,              0,            200,           1023,            259,         80,                640  + 146,       640 + 146 + 90,           200 + 19,      200 + 19 + 4,              0,               0,                0,               0),      -- 1  MZ80K/C/1200/A machines with an adapted monochrome 60Hz display with scan of 1024 x 260 for a 640x200 viewable area.			
-      (            0,            320,              0,            320,              0,            200,              0,            200,            511,            259,         40,                320  + 73,        320 + 73  + 45,           200 + 19,      200 + 19 + 4,              0,               0,                0,               0),      -- 2  MZ80K/C/1200/A machines with MZ700 style colour @ 60Hz display with scan of 512 x 260 for a 320x200 viewable area.			
-      (            0,            640,              0,            640,              0,            200,              0,            200,           1023,            259,         80,                640  + 146,       640 + 146 + 90,           200 + 19,      200 + 19 + 4,              0,               0,                0,               0),      -- 3  MZ80K/C/1200/A machines with MZ700 style colour @ 60Hz display with scan of 1024 x 260 for a 640x200 viewable area.			
+      (            0,            320,              0,            320,              0,            200,              0,            200,            511,            259,         40,                320  + 53,        320 + 53  + 45,           200 + 19,      200 + 19 + 4,              0,               0,                0,               0),      -- 0  MZ80K/C/1200/A machines have a monochrome 60Hz display with scan of 512 x 260 for a 320x200 viewable area.
+      (            0,            640,              0,            640,              0,            200,              0,            200,           1023,            259,         80,                640  + 116,       640 + 116 + 90,           200 + 19,      200 + 19 + 4,              0,               0,                0,               0),      -- 1  MZ80K/C/1200/A machines with an adapted monochrome 60Hz display with scan of 1024 x 260 for a 640x200 viewable area.			
+      (            0,            320,              0,            320,              0,            200,              0,            200,            511,            259,         40,                320  + 53,        320 + 53  + 45,           200 + 19,      200 + 19 + 4,              0,               0,                0,               0),      -- 2  MZ80K/C/1200/A machines with MZ700 style colour @ 60Hz display with scan of 512 x 260 for a 320x200 viewable area.			
+      (            0,            640,              0,            640,              0,            200,              0,            200,           1023,            259,         80,                640  + 116,       640 + 116 + 90,           200 + 19,      200 + 19 + 4,              0,               0,                0,               0),      -- 3  MZ80K/C/1200/A machines with MZ700 style colour @ 60Hz display with scan of 1024 x 260 for a 640x200 viewable area.			
 
       (            0,            640,              0,            640,              0,            480,              0,            400,            799,            524,         40,                640  + 16,        640 + 16  + 96,           480 + 10,      480 + 10 + 2,              0,               0,                1,               1),      -- 4  Mode 0 upscaled as 640x480 @ 60Hz timings for 40Char mode monochrome. 			
       (            0,            640,              0,            640,              0,            480,              0,            400,            799,            524,         80,                640  + 16,        640 + 16  + 96,           480 + 10,      480 + 10 + 2,              0,               0,                0,               1),      -- 5  Mode 1 upscaled as 640x480 @ 60Hz timings for 80Char mode monochrome.
@@ -146,8 +149,7 @@ architecture rtl of VideoController is
     -- Registers
     --
     signal VIDEOMODE             :     integer range 0 to 20;
---    signal VIDEOMODE_CHANGED     :     std_logic;
-    signal VIDEOMODE_RESET_TIMER :     unsigned(20 downto 0);                -- Video mode changed timer, when not 0 the mode is being changed.
+    signal VIDEOMODE_RESET_TIMER :     unsigned(15 downto 0);                -- Video mode changed timer, when not 0 the mode is being changed.
     signal MAX_COLUMN            :     unsigned(7 downto 0);
     signal FB_ADDR               :     std_logic_vector(13 downto 0);        -- Frame buffer actual address
     signal OFFSET_ADDR           :     std_logic_vector(7 downto 0);         -- Display Offset - for MZ1200/80A machines with 2K VRAM
@@ -158,8 +160,6 @@ architecture rtl of VideoController is
     signal XFER_ADDR             :     std_logic_vector(10 downto 0);
     signal XFER_SUB_ADDR         :     std_logic_vector(2 downto 0);
     signal XFER_VRAM_DATA        :     std_logic_vector(15 downto 0);
-
---    signal XFER_GRAM_DATA        :     std_logic_vector(23 downto 0);        -- GRAM I (MZ80B) + GRAM II (MZ80B) + GRAM III (RGB mode)
     signal XFER_MAPPED_DATA      :     std_logic_vector(23 downto 0);
     signal XFER_R_WEN            :     std_logic;
     signal XFER_G_WEN            :     std_logic;
@@ -176,6 +176,7 @@ architecture rtl of VideoController is
     signal V_PX                  :     unsigned(7 downto 0);                 -- Variable to indicate if vertical pixels should be multiplied (for conversion to alternate formats).
     signal V_PX_CNT              :     integer range 0 to 3;                 -- Variable to indicate if vertical pixels should be multiplied (for conversion to alternate formats).
     signal VPARAM_DO             :     std_logic_vector(7 downto 0);         -- Video Parameter register read signal.
+    signal PCGRAM                :     std_logic := '0';                     -- PCG RAM, allow access to the programmable character generator memory.
     signal MODE_MZ80A            :     std_logic := '1';                     -- The Video Module is running in MZ80A mode.
     signal MODE_MZ700            :     std_logic := '0';                     -- The Video Module is running in MZ700 mode.
     signal MODE_MZ800            :     std_logic := '0';                     -- The Video Module is running in MZ800 mode.
@@ -239,7 +240,7 @@ architecture rtl of VideoController is
     signal CS_FB_GREEN_n         :     std_logic;                            -- Chip Select to write to the Green pixel per byte indirect write register.
     signal CS_FB_BLUE_n          :     std_logic;                            -- Chip Select to write to the Blue pixel per byte indirect write register.
     signal CS_PCG_n              :     std_logic;                            -- Chip select for the programmable character generator.
-    signal CS_LAST_LEVEL         :     std_logic_vector(15 downto 0);        -- Register to store the previous chip select level for edge detection.
+    signal CS_LAST_LEVEL         :     std_logic_vector(16 downto 0);        -- Register to store the previous chip select level for edge detection.
     signal CS_DXXX_n             :     std_logic;                            -- Chip select range for the VRAM/ARAM.
     signal CS_EXXX_n             :     std_logic;                            -- Chip select range for the memory mapped I/O.
     signal CS_DVRAM_n            :     std_logic;                            -- Chip select for the Video RAM.
@@ -297,8 +298,6 @@ architecture rtl of VideoController is
     signal H_I_SYNC_START        :     unsigned(15 downto 0); 
     signal H_I_SYNC_END          :     unsigned(15 downto 0); 
     signal H_I_LINE_END          :     unsigned(15 downto 0); 
-    signal H_I_POLARITY          :     unsigned( 0 downto 0);                -- Horizontal polarity.
-    signal V_I_POLARITY          :     unsigned( 0 downto 0);                -- Vertical polarity.
     signal V_I_COUNT             :     unsigned(10 downto 0);                -- Vertical pixel counter
     signal V_I_BLANKi            :     std_logic;                            -- Vertical Blanking
     signal V_I_SYNC_ni           :     std_logic;                            -- Horizontal Blanking
@@ -307,7 +306,6 @@ architecture rtl of VideoController is
     signal V_I_SYNC_START        :     unsigned(15 downto 0); 
     signal V_I_SYNC_END          :     unsigned(15 downto 0); 
     signal V_I_LINE_END          :     unsigned(15 downto 0); 
-    signal MAX_COLUMN_I          :     unsigned(7 downto 0);
     signal DISABLE_INT_DISPLAY   :     std_logic; 
     --
     -- CG-ROM
@@ -332,9 +330,7 @@ architecture rtl of VideoController is
     --
     signal VID_CLK               :     std_logic;
     signal VID_CLK_I             :     std_logic;
-    signal VID_CLK_EN            :     std_logic;
-    signal VID_CLK_EN_LAST       :     std_logic;
-    signal VID_CLK_EN_TRIGGER    :     std_logic;
+    signal VID_CLK_IN_SYNC       :     std_logic;
 
     function to_std_logic(L: boolean) return std_logic is
     begin
@@ -425,7 +421,7 @@ begin
         clock_a              => IF_CLK,
         clocken_a            => '1',
         address_a            => GRAM_ADDR(13 downto 0),
-        data_a               => GRAM_DI_GI,
+        data_a               => GRAM_DI_R,
         wren_a               => GRAM_WEN_GI, 
         q_a                  => GRAM_DO_GI,
     
@@ -455,7 +451,7 @@ begin
         clock_a              => IF_CLK, 
         clocken_a            => '1',
         address_a            => GRAM_ADDR(13 downto 0),
-        data_a               => GRAM_DI_GII,
+        data_a               => GRAM_DI_B,
         wren_a               => GRAM_WEN_GII, 
         q_a                  => GRAM_DO_GII,
     
@@ -486,7 +482,7 @@ begin
         clock_a              => IF_CLK,
         clocken_a            => '1',
         address_a            => GRAM_ADDR(13 downto 0),
-        data_a               => GRAM_DI_GIII,
+        data_a               => GRAM_DI_G,
         wren_a               => GRAM_WEN_GIII, 
         q_a                  => GRAM_DO_GIII,
     
@@ -531,7 +527,7 @@ begin
     --
     CGRAM : dpram
     GENERIC MAP (
-        init_file            => null,
+        init_file            => "../../software/mif/mz80a_cgrom.mif",
         widthad_a            => 12,
         width_a              => 8,
         widthad_b            => 12,
@@ -556,347 +552,369 @@ begin
     -- Clock at maximum system speed to minimise transfer time.
     -- Rasterisation and blending into the display framebuffer is made during the Vertical Blanking period.
     --
-    process( VRESETn, SYS_CLK, XFER_DST_ADDR, FB_ADDR )
-        variable XFER_CYCLE      : integer range 0 to 10;
-        variable XFER_ENABLED    : std_logic;                            -- Enable transfer of VRAM/GRAM to framebuffer.
-        variable XFER_PAUSE      : std_logic;                            -- Pause transfer of VRAM/GRAM to framebuffer during data display period.
-        variable XFER_SRC_COL    : integer range 0 to 80;
-        variable XFER_DST_SUBROW : integer range 0 to 7;
+    RENDERFRAMES: process( VRESETn, SYS_CLK, XFER_DST_ADDR, FB_ADDR, VIDEOMODE_RESET_TIMER )
+        variable XFER_CYCLE     : integer range 0 to 10;
+        variable XFER_ENABLED   : std_logic;                            -- Enable transfer of VRAM/GRAM to framebuffer.
+        variable XFER_PAUSE     : std_logic;                            -- Pause transfer of VRAM/GRAM to framebuffer during data display period.
+        variable XFER_SRC_COL   : integer range 0 to 80;
+        variable XFER_DST_SUBROW: integer range 0 to 7;
     begin
+
         if VRESETn='0' then
-            XFER_VRAM_ADDR   <= (others => '0');
-            XFER_DST_ADDR    <= (others => '0');
-            XFER_CGROM_ADDR  <= (others => '0');
-            XFER_ENABLED     := '0';
-            XFER_PAUSE       := '0';
-            XFER_SRC_COL     := 0;
-            XFER_DST_SUBROW  := 0;
-            XFER_CYCLE       := 0;
-            XFER_R_WEN       <= '0';
-            XFER_G_WEN       <= '0';
-            XFER_B_WEN       <= '0';
-            XFER_MAPPED_DATA <= (others => '0');
+            XFER_VRAM_ADDR      <= (others => '0');
+            XFER_DST_ADDR       <= (others => '0');
+            XFER_CGROM_ADDR     <= (others => '0');
+            XFER_ENABLED        := '0';
+            XFER_PAUSE          := '0';
+            XFER_SRC_COL        := 0;
+            XFER_DST_SUBROW     := 0;
+            XFER_CYCLE          := 0;
+            XFER_R_WEN          <= '0';
+            XFER_G_WEN          <= '0';
+            XFER_B_WEN          <= '0';
+            XFER_MAPPED_DATA    <= (others => '0');
     
         -- Copy at end of Display based on the highest clock to minimise time,
         --
         elsif rising_edge(SYS_CLK) then
 
-            -- Every time we reach the end of the visible display area we enable copying of the VRAM and GRAM into the
-            -- display framebuffer, ready for the next frame display. This starts to occur a fixed set of rows after 
-            -- they have been displayed, initially only during the hblank period of a row, but the during the full row
-            -- in the vblank period.
+            -- A video mode change is similar to a RESET, the process halts and all the control variables are reset.
             --
-            if V_COUNT = V_DSP_END and VIDEOMODE_RESET_TIMER = 0 then
-                XFER_ENABLED    := '1';
-            end if;
-    
-            -- During the actual data display, we pause until the start of the vblanking period.
-            --
-            if V_BLANKi = '0' then --XFER_CYCLE = 0 and XFER_R_WEN = '0' and XFER_G_WEN = '0' and XFER_B_WEN = '0' and V_BLANKi = '0' then 
-            --if XFER_R_WEN = '0' and XFER_G_WEN = '0' and XFER_B_WEN = '0' and V_BLANKi = '0' and H_BLANKi = '0' then 
-                XFER_PAUSE      := '1';
+            if VIDEOMODE_RESET_TIMER /= 0 then
+                XFER_VRAM_ADDR      <= (others => '0');
+                XFER_DST_ADDR       <= (others => '0');
+                XFER_CGROM_ADDR     <= (others => '0');
+                XFER_ENABLED        := '0';
+                XFER_PAUSE          := '0';
+                XFER_SRC_COL        := 0;
+                XFER_DST_SUBROW     := 0;
+                XFER_CYCLE          := 0;
+                XFER_R_WEN          <= '0';
+                XFER_G_WEN          <= '0';
+                XFER_B_WEN          <= '0';
+                XFER_MAPPED_DATA    <= (others => '0');
+
             else
-                XFER_PAUSE      := '0';
-            end if;
-    
-            -- If we are in the active transfer window, start transfer.
-            --
-            if XFER_ENABLED = '1' and XFER_PAUSE = '0' then
-    
-                -- Once we reach the end of the framebuffer, disable the copying until next frame.
+
+                -- Every time we reach the end of the visible display area we enable copying of the VRAM and GRAM into the
+                -- display framebuffer, ready for the next frame display. This starts to occur a fixed set of rows after 
+                -- they have been displayed, initially only during the hblank period of a row, but the during the full row
+                -- in the vblank period.
                 --
-                if XFER_DST_ADDR > 16000 then
-                    XFER_ENABLED         := '0';
+                if V_COUNT = 0 then
+                    XFER_ENABLED    := '1';
                 end if;
-    
-                -- Finite state machine to implement read, map and write.
-                case (XFER_CYCLE) is
-    
-                    when 0 =>
-                        XFER_MAPPED_DATA <= (others => '0');
-                        XFER_CYCLE       := 1;
-    
-                    -- Get the source character and map via the PCG to a slice of the displayed character.
-                    -- Recalculate the destination address based on this loops values.
-                    when 1 =>
-                        -- Setup the PCG address based on the read character.
-                        XFER_CGROM_ADDR  <= XFER_VRAM_DATA(15) & XFER_VRAM_DATA(7 downto 0) & std_logic_vector(to_unsigned(XFER_DST_SUBROW, 3));
-                        XFER_CYCLE       := 2;
-    
-                    --   Graphics mode:- 7/6 = Operator (00=OR,01=AND,10=NAND,11=XOR),
-                    --                     5 = GRAM Output Enable  0 = active.
-                    --                     4 = VRAM Output Enable, 0 = active.
-                    --                   3/2 = Write mode (00=Page 1:Red, 01=Page 2:Green, 10=Page 3:Blue, 11=Indirect),
-                    --                   1/0 = Read mode  (00=Page 1:Red, 01=Page2:Green, 10=Page 3:Blue, 11=Not used).
-                    --
-                    -- Extra cycle for CGROM to latch, use time to decide which mode we are processing.
-                    when 2 =>
-                        -- Check to see if VRAM is disabled, if it is, skip.
-                        --
-                        if VRAMDISABLE = '0' and GRAM_MODE_REG(4) = '0' and (MODE_MONO = '1' or MODE_MONO80 = '1') then
-                            -- Monochrome modes?
-                            XFER_CYCLE := 4;
-    
-                        elsif VRAMDISABLE = '0' and GRAM_MODE_REG(4) = '0' and (MODE_COLOUR = '1' or MODE_COLOUR80 = '1') then
-                            -- Colour modes?
-                            XFER_CYCLE := 3;
-    
-                        else
-                            -- Disabled or unrecognised mode.
-                            XFER_CYCLE := 5;
-                        end if;
-    
-                    -- Colour modes?
-                    -- Expand and store the slice of the character with colour expansion.
-                    --
-                    when 3 =>
-                        if CGROM_DATA(7) = '0' then
-                            XFER_MAPPED_DATA(7)      <= XFER_VRAM_DATA(9);              -- Red
-                            XFER_MAPPED_DATA(15)     <= XFER_VRAM_DATA(8);              -- Blue
-                            XFER_MAPPED_DATA(23)     <= XFER_VRAM_DATA(10);             -- Green
-                        else
-                            XFER_MAPPED_DATA(7)      <= XFER_VRAM_DATA(13);
-                            XFER_MAPPED_DATA(15)     <= XFER_VRAM_DATA(12);
-                            XFER_MAPPED_DATA(23)     <= XFER_VRAM_DATA(14);
-                        end if;
-                        if CGROM_DATA(6) = '0' then
-                            XFER_MAPPED_DATA(6)      <= XFER_VRAM_DATA(9);
-                            XFER_MAPPED_DATA(14)     <= XFER_VRAM_DATA(8);
-                            XFER_MAPPED_DATA(22)     <= XFER_VRAM_DATA(10);
-                        else
-                            XFER_MAPPED_DATA(6)      <= XFER_VRAM_DATA(13);
-                            XFER_MAPPED_DATA(14)     <= XFER_VRAM_DATA(12);
-                            XFER_MAPPED_DATA(22)     <= XFER_VRAM_DATA(14);
-                        end if;
-                        if CGROM_DATA(5) = '0' then
-                            XFER_MAPPED_DATA(5)      <= XFER_VRAM_DATA(9);
-                            XFER_MAPPED_DATA(13)     <= XFER_VRAM_DATA(8);
-                            XFER_MAPPED_DATA(21)     <= XFER_VRAM_DATA(10);
-                        else
-                            XFER_MAPPED_DATA(5)      <= XFER_VRAM_DATA(13);
-                            XFER_MAPPED_DATA(13)     <= XFER_VRAM_DATA(12);
-                            XFER_MAPPED_DATA(21)     <= XFER_VRAM_DATA(14);
-                        end if;
-                        if CGROM_DATA(4) = '0' then
-                            XFER_MAPPED_DATA(4)      <= XFER_VRAM_DATA(9);
-                            XFER_MAPPED_DATA(12)     <= XFER_VRAM_DATA(8);
-                            XFER_MAPPED_DATA(20)     <= XFER_VRAM_DATA(10);
-                        else
-                            XFER_MAPPED_DATA(4)      <= XFER_VRAM_DATA(13);
-                            XFER_MAPPED_DATA(12)     <= XFER_VRAM_DATA(12);
-                            XFER_MAPPED_DATA(20)     <= XFER_VRAM_DATA(14);
-                        end if;
-                        if CGROM_DATA(3) = '0' then
-                            XFER_MAPPED_DATA(3)      <= XFER_VRAM_DATA(9);
-                            XFER_MAPPED_DATA(11)     <= XFER_VRAM_DATA(8);
-                            XFER_MAPPED_DATA(19)     <= XFER_VRAM_DATA(10);
-                        else
-                            XFER_MAPPED_DATA(3)      <= XFER_VRAM_DATA(13);
-                            XFER_MAPPED_DATA(11)     <= XFER_VRAM_DATA(12);
-                            XFER_MAPPED_DATA(19)     <= XFER_VRAM_DATA(14);
-                        end if;
-                        if CGROM_DATA(2) = '0' then
-                            XFER_MAPPED_DATA(2)      <= XFER_VRAM_DATA(9);
-                            XFER_MAPPED_DATA(10)     <= XFER_VRAM_DATA(8);
-                            XFER_MAPPED_DATA(18)     <= XFER_VRAM_DATA(10);
-                        else
-                            XFER_MAPPED_DATA(2)      <= XFER_VRAM_DATA(13);
-                            XFER_MAPPED_DATA(10)     <= XFER_VRAM_DATA(12);
-                            XFER_MAPPED_DATA(18)     <= XFER_VRAM_DATA(14);
-                        end if;
-                        if CGROM_DATA(1) = '0' then
-                            XFER_MAPPED_DATA(1)      <= XFER_VRAM_DATA(9);
-                            XFER_MAPPED_DATA(9)      <= XFER_VRAM_DATA(8);
-                            XFER_MAPPED_DATA(17)     <= XFER_VRAM_DATA(10);
-                        else
-                            XFER_MAPPED_DATA(1)      <= XFER_VRAM_DATA(13);
-                            XFER_MAPPED_DATA(9)      <= XFER_VRAM_DATA(12);
-                            XFER_MAPPED_DATA(17)     <= XFER_VRAM_DATA(14);
-                        end if;
-                        if CGROM_DATA(0) = '0' then
-                            XFER_MAPPED_DATA(0)      <= XFER_VRAM_DATA(9);
-                            XFER_MAPPED_DATA(8)      <= XFER_VRAM_DATA(8);
-                            XFER_MAPPED_DATA(16)     <= XFER_VRAM_DATA(10);
-                        else
-                            XFER_MAPPED_DATA(0)      <= XFER_VRAM_DATA(13);
-                            XFER_MAPPED_DATA(8)      <= XFER_VRAM_DATA(12);
-                            XFER_MAPPED_DATA(16)     <= XFER_VRAM_DATA(14);
-                        end if;
-                        XFER_CYCLE := 6;
-    
-                    -- Monochrome modes?
-                    -- Expand and store the slice of the character.
-                    --
-                    when 4 =>
-                        if CGROM_DATA(7) = '1' then
-                            XFER_MAPPED_DATA(23)     <= '1';
-                            if MODE_MZ80K = '1' or MODE_MZ80C = '1' then
-                                XFER_MAPPED_DATA(7)  <= '1';
-                                XFER_MAPPED_DATA(15) <= '1';
-                            end if;
-                        end if;
-                        if CGROM_DATA(6) = '1' then
-                            XFER_MAPPED_DATA(22)      <= '1';
-                            if MODE_MZ80K = '1' or MODE_MZ80C = '1' then
-                                XFER_MAPPED_DATA(6)  <= '1';
-                                XFER_MAPPED_DATA(14) <= '1';
-                            end if;
-                        end if;
-                        if CGROM_DATA(5) = '1' then
-                            XFER_MAPPED_DATA(21)     <= '1';
-                            if MODE_MZ80K = '1' or MODE_MZ80C = '1' then
-                                XFER_MAPPED_DATA(5)  <= '1';
-                                XFER_MAPPED_DATA(13) <= '1';
-                            end if;
-                        end if;
-                        if CGROM_DATA(4) = '1' then
-                            XFER_MAPPED_DATA(20)     <= '1';
-                            if MODE_MZ80K = '1' or MODE_MZ80C = '1' then
-                                XFER_MAPPED_DATA(4)  <= '1';
-                                XFER_MAPPED_DATA(12) <= '1';
-                            end if;
-                        end if;
-                        if CGROM_DATA(3) = '1' then
-                            XFER_MAPPED_DATA(19)     <= '1';
-                            if MODE_MZ80K = '1' or MODE_MZ80C = '1' then
-                                XFER_MAPPED_DATA(3)  <= '1';
-                                XFER_MAPPED_DATA(11) <= '1';
-                            end if;
-                        end if;
-                        if CGROM_DATA(2) = '1' then
-                            XFER_MAPPED_DATA(18)     <= '1';
-                            if MODE_MZ80K = '1' or MODE_MZ80C = '1' then
-                                XFER_MAPPED_DATA(2)  <= '1';
-                                XFER_MAPPED_DATA(10) <= '1';
-                            end if;
-                        end if;
-                        if CGROM_DATA(1) = '1' then
-                            XFER_MAPPED_DATA(17)     <= '1';
-                            if MODE_MZ80K = '1' or MODE_MZ80C = '1' then
-                                XFER_MAPPED_DATA(1)  <= '1';
-                                XFER_MAPPED_DATA(9)  <= '1';
-                            end if;
-                        end if;
-                        if CGROM_DATA(0) = '1' then
-                            XFER_MAPPED_DATA(16)     <= '1';
-                            if MODE_MZ80K = '1' or MODE_MZ80C = '1' then
-                                XFER_MAPPED_DATA(0)  <= '1';
-                                XFER_MAPPED_DATA(8)  <= '1';
-                            end if;
-                        end if;
-                        XFER_CYCLE := 5;
-    
-                    when 5 =>
-                        -- If invert option selected, invert green.
-                        --
-                      --  if (MODE_MZ80B = '1' and INVERSE_n = '0') or (MODE_MZ80A = '1' and DISPLAY_INVERT = '1') then
-                        if (MODE_MZ80A = '1' or MODE_MZ80B = '1')and DISPLAY_INVERT = '1' then
-                            XFER_MAPPED_DATA(23 downto 16) <= not XFER_MAPPED_DATA(23 downto 16);
-                        end if;
-                        XFER_CYCLE := 6;
-    
-                    when 6 =>
-                        -- Graphics ram enabled?
-                        --
-                        if GRAM_ENABLED = '1' and GRAM_MODE_REG(5) = '0' then
-                            -- Merge in the graphics data using defined mode.
-                            --
-                            case GRAM_MODE_REG(7 downto 6) is
-                                when "00" =>
-                                    XFER_MAPPED_DATA <= XFER_MAPPED_DATA or   reverse_vector(DISPLAY_DATA(23 downto 16)) & reverse_vector(DISPLAY_DATA(15 downto 8)) & reverse_vector(DISPLAY_DATA(7 downto 0));
-                                when "01" =>
-                                    XFER_MAPPED_DATA <= XFER_MAPPED_DATA and  reverse_vector(DISPLAY_DATA(23 downto 16)) & reverse_vector(DISPLAY_DATA(15 downto 8)) & reverse_vector(DISPLAY_DATA(7 downto 0));
-                                when "10" =>
-                                    XFER_MAPPED_DATA <= XFER_MAPPED_DATA nand reverse_vector(DISPLAY_DATA(23 downto 16)) & reverse_vector(DISPLAY_DATA(15 downto 8)) & reverse_vector(DISPLAY_DATA(7 downto 0));
-                                when "11" =>
-                                    XFER_MAPPED_DATA <= XFER_MAPPED_DATA xor  reverse_vector(DISPLAY_DATA(23 downto 16)) & reverse_vector(DISPLAY_DATA(15 downto 8)) & reverse_vector(DISPLAY_DATA(7 downto 0));
-                            end case;
-                        end if;
-                        XFER_CYCLE := 7;
-    
-                    when 7 =>
-                        -- For MZ80B, if enabled, blend in the graphics memory.
-                        --
-                        if MODE_MZ80B = '1' and XFER_DST_ADDR < 8192 then
-                            if GRAM_OPT_OUT1 = '1' and GRAM_OPT_OUT2 = '1' then
-                                XFER_MAPPED_DATA(23 downto 16) <= XFER_MAPPED_DATA(23 downto 16) or reverse_vector(DISPLAY_DATA(7 downto 0)) or reverse_vector(DISPLAY_DATA(15 downto 8));
-                            elsif GRAM_OPT_OUT1 = '1' then
-                                XFER_MAPPED_DATA(23 downto 16) <= XFER_MAPPED_DATA(23 downto 16) or reverse_vector(DISPLAY_DATA(7 downto 0));
-                            elsif GRAM_OPT_OUT2 = '1' then
-                                XFER_MAPPED_DATA(23 downto 16) <= XFER_MAPPED_DATA(23 downto 16) or reverse_vector(DISPLAY_DATA(15 downto 8));
-                            end if;
-                        end if;
-                        XFER_CYCLE := 8;
-    
-                    -- Commence write of mapped data.
-                    when 8 =>
-                        XFER_R_WEN   <= '1';
-                        XFER_G_WEN   <= '1';
-                        XFER_B_WEN   <= '1';
-                        XFER_CYCLE   := 9;
-    
-                    -- Complete write and update address.
-                    when 9 =>
-                        -- Write cycle to framebuffer finished.
-                        XFER_R_WEN   <= '0';
-                        XFER_G_WEN   <= '0';
-                        XFER_B_WEN   <= '0';
-                        XFER_CYCLE   := 10;
-    
-                    when 10 =>
-                        -- For each source character, we generate 8 lines in the frame buffer. Thus we need to 
-                        -- process the same source row 8 times, each time incrementing the sub-row which is used
-                        -- to extract the next pixel set from the CG. This data is thus written into the destination as:-
-                        -- <Row:0,CGLine:0,0 .. MAX_COLUMN -1> <Row:0,CGLine:1,0.. MAX_COLUMN -1> .. <Row:0,CGLine:7,0.. MAX_COLUMN -1>
-                        -- ..
-                        -- <Row:24,CGLine:0,0 .. MAX_COLUMN -1><Row:24,CGLine:1,0.. MAX_COLUMN -1> .. <Row:24,CGLine:7,0.. MAX_COLUMN -1>
-                        --
-                        -- To achieve this, we keep a note of the column and sub-row, incrementing the source address until end of line
-                        -- then winding it back if we are still rendering the Characters for a given row. 
-                        -- Destination address always increments every clock cycle to take the next pixel set.
-                        --
-                        if XFER_SRC_COL < MAX_COLUMN - 1 then
-                            XFER_SRC_COL        := XFER_SRC_COL + 1;
-                            XFER_VRAM_ADDR      <= XFER_VRAM_ADDR + 1;
-                        else
-                            if XFER_DST_SUBROW < MAX_SUBROW -1 then
-                                XFER_SRC_COL    := 0;
-                                XFER_DST_SUBROW := XFER_DST_SUBROW + 1;
-                                XFER_VRAM_ADDR  <= XFER_VRAM_ADDR - std_logic_vector((MAX_COLUMN - 1));
-                            else
-                                XFER_SRC_COL    := 0;
-                                XFER_VRAM_ADDR  <= XFER_VRAM_ADDR + 1;
-                                XFER_DST_SUBROW := 0;
-                            end if;
-                        end if;
-    
-                        -- Destination address increments every tick.
-                        --
-                        XFER_DST_ADDR <= XFER_DST_ADDR + 1;
-                        XFER_CYCLE := 0;
-                end case;
-            end if;
-    
-            -- On a new cycle, reset the transfer parameters.
-            --
-            if V_COUNT = V_LINE_END and H_COUNT = H_LINE_END - 1 then
-    
-                -- Start of display, setup the start of VRAM for display according to machine. 
-                if MODE_MZ80A = '1' then
-                    XFER_VRAM_ADDR <= (OFFSET_ADDR & "000");
+        
+                -- During the actual data display, we pause rendering until the start of a horizontal or vertical blanking period.
+                --
+                --if V_BLANKi = '0' then --XFER_CYCLE = 0 and XFER_R_WEN = '0' and XFER_G_WEN = '0' and XFER_B_WEN = '0' and V_BLANKi = '0' then 
+                if (V_COUNT < V_DSP_WND_END and (H_COUNT < H_DSP_WND_END or H_COUNT > H_LINE_END - 3 or XFER_DST_ADDR >= FB_ADDR-std_logic_vector(MAX_COLUMN)))
+                   and XFER_R_WEN = '0' and XFER_G_WEN = '0' and XFER_B_WEN = '0'
+                then   
+                    XFER_PAUSE      := '1';
                 else
-                    XFER_VRAM_ADDR <= (others => '0');
+                    XFER_PAUSE      := '0';
                 end if;
-                XFER_DST_ADDR    <= (others => '0');
-                XFER_CGROM_ADDR  <= (others => '0');
-                XFER_SRC_COL     := 0;
-                XFER_DST_SUBROW  := 0;
-                XFER_CYCLE       := 0;
-                XFER_ENABLED     := '0';
-                XFER_R_WEN       <= '0';
-                XFER_G_WEN       <= '0';
-                XFER_B_WEN       <= '0';
-                XFER_MAPPED_DATA <= (others => '0');
+        
+                -- If we are in the active transfer window, start transfer.
+                --
+                if XFER_ENABLED = '1' and XFER_PAUSE = '0' then
+        
+                    -- Once we reach the end of the framebuffer, disable the copying until next frame.
+                    --
+                    if XFER_DST_ADDR >= 16383 then
+                        XFER_ENABLED         := '0';
+                    end if;
+        
+                    -- Finite state machine to implement read, map and write.
+                    case (XFER_CYCLE) is
+        
+                        when 0 =>
+                            XFER_MAPPED_DATA <= (others => '0');
+                            XFER_CYCLE       := 1;
+        
+                        -- Get the source character and map via the PCG to a slice of the displayed character.
+                        -- Recalculate the destination address based on this loops values.
+                        when 1 =>
+                            -- Setup the PCG address based on the read character.
+                            XFER_CGROM_ADDR  <= XFER_VRAM_DATA(15) & XFER_VRAM_DATA(7 downto 0) & std_logic_vector(to_unsigned(XFER_DST_SUBROW, 3));
+                            XFER_CYCLE       := 2;
+        
+                        --   Graphics mode:- 7/6 = Operator (00=OR,01=AND,10=NAND,11=XOR),
+                        --                     5 = GRAM Output Enable  0 = active.
+                        --                     4 = VRAM Output Enable, 0 = active.
+                        --                   3/2 = Write mode (00=Page 1:Red, 01=Page 2:Green, 10=Page 3:Blue, 11=Indirect),
+                        --                   1/0 = Read mode  (00=Page 1:Red, 01=Page2:Green, 10=Page 3:Blue, 11=Not used).
+                        --
+                        -- Extra cycle for CGROM to latch, use time to decide which mode we are processing.
+                        when 2 =>
+                            -- Check to see if VRAM is disabled, if it is, skip.
+                            --
+                            if GRAM_MODE_REG(5) = '0' and GRAM_MODE_REG(4) = '0' and (MODE_MONO = '1' or MODE_MONO80 = '1') then
+                                -- Monochrome modes?
+                                XFER_CYCLE := 4;
+        
+                            elsif GRAM_MODE_REG(5) = '0' and GRAM_MODE_REG(4) = '0' and (MODE_COLOUR = '1' or MODE_COLOUR80 = '1') then
+                                -- Colour modes?
+                                XFER_CYCLE := 3;
+        
+                            else
+                                -- Disabled or unrecognised mode.
+                                XFER_CYCLE := 5;
+                            end if;
+        
+                        -- Colour modes?
+                        -- Expand and store the slice of the character with colour expansion.
+                        --
+                        when 3 =>
+                            if CGROM_DATA(7) = '0' then
+                                XFER_MAPPED_DATA(7)      <= XFER_VRAM_DATA(9);              -- Red
+                                XFER_MAPPED_DATA(15)     <= XFER_VRAM_DATA(8);              -- Blue
+                                XFER_MAPPED_DATA(23)     <= XFER_VRAM_DATA(10);             -- Green
+                            else
+                                XFER_MAPPED_DATA(7)      <= XFER_VRAM_DATA(13);
+                                XFER_MAPPED_DATA(15)     <= XFER_VRAM_DATA(12);
+                                XFER_MAPPED_DATA(23)     <= XFER_VRAM_DATA(14);
+                            end if;
+                            if CGROM_DATA(6) = '0' then
+                                XFER_MAPPED_DATA(6)      <= XFER_VRAM_DATA(9);
+                                XFER_MAPPED_DATA(14)     <= XFER_VRAM_DATA(8);
+                                XFER_MAPPED_DATA(22)     <= XFER_VRAM_DATA(10);
+                            else
+                                XFER_MAPPED_DATA(6)      <= XFER_VRAM_DATA(13);
+                                XFER_MAPPED_DATA(14)     <= XFER_VRAM_DATA(12);
+                                XFER_MAPPED_DATA(22)     <= XFER_VRAM_DATA(14);
+                            end if;
+                            if CGROM_DATA(5) = '0' then
+                                XFER_MAPPED_DATA(5)      <= XFER_VRAM_DATA(9);
+                                XFER_MAPPED_DATA(13)     <= XFER_VRAM_DATA(8);
+                                XFER_MAPPED_DATA(21)     <= XFER_VRAM_DATA(10);
+                            else
+                                XFER_MAPPED_DATA(5)      <= XFER_VRAM_DATA(13);
+                                XFER_MAPPED_DATA(13)     <= XFER_VRAM_DATA(12);
+                                XFER_MAPPED_DATA(21)     <= XFER_VRAM_DATA(14);
+                            end if;
+                            if CGROM_DATA(4) = '0' then
+                                XFER_MAPPED_DATA(4)      <= XFER_VRAM_DATA(9);
+                                XFER_MAPPED_DATA(12)     <= XFER_VRAM_DATA(8);
+                                XFER_MAPPED_DATA(20)     <= XFER_VRAM_DATA(10);
+                            else
+                                XFER_MAPPED_DATA(4)      <= XFER_VRAM_DATA(13);
+                                XFER_MAPPED_DATA(12)     <= XFER_VRAM_DATA(12);
+                                XFER_MAPPED_DATA(20)     <= XFER_VRAM_DATA(14);
+                            end if;
+                            if CGROM_DATA(3) = '0' then
+                                XFER_MAPPED_DATA(3)      <= XFER_VRAM_DATA(9);
+                                XFER_MAPPED_DATA(11)     <= XFER_VRAM_DATA(8);
+                                XFER_MAPPED_DATA(19)     <= XFER_VRAM_DATA(10);
+                            else
+                                XFER_MAPPED_DATA(3)      <= XFER_VRAM_DATA(13);
+                                XFER_MAPPED_DATA(11)     <= XFER_VRAM_DATA(12);
+                                XFER_MAPPED_DATA(19)     <= XFER_VRAM_DATA(14);
+                            end if;
+                            if CGROM_DATA(2) = '0' then
+                                XFER_MAPPED_DATA(2)      <= XFER_VRAM_DATA(9);
+                                XFER_MAPPED_DATA(10)     <= XFER_VRAM_DATA(8);
+                                XFER_MAPPED_DATA(18)     <= XFER_VRAM_DATA(10);
+                            else
+                                XFER_MAPPED_DATA(2)      <= XFER_VRAM_DATA(13);
+                                XFER_MAPPED_DATA(10)     <= XFER_VRAM_DATA(12);
+                                XFER_MAPPED_DATA(18)     <= XFER_VRAM_DATA(14);
+                            end if;
+                            if CGROM_DATA(1) = '0' then
+                                XFER_MAPPED_DATA(1)      <= XFER_VRAM_DATA(9);
+                                XFER_MAPPED_DATA(9)      <= XFER_VRAM_DATA(8);
+                                XFER_MAPPED_DATA(17)     <= XFER_VRAM_DATA(10);
+                            else
+                                XFER_MAPPED_DATA(1)      <= XFER_VRAM_DATA(13);
+                                XFER_MAPPED_DATA(9)      <= XFER_VRAM_DATA(12);
+                                XFER_MAPPED_DATA(17)     <= XFER_VRAM_DATA(14);
+                            end if;
+                            if CGROM_DATA(0) = '0' then
+                                XFER_MAPPED_DATA(0)      <= XFER_VRAM_DATA(9);
+                                XFER_MAPPED_DATA(8)      <= XFER_VRAM_DATA(8);
+                                XFER_MAPPED_DATA(16)     <= XFER_VRAM_DATA(10);
+                            else
+                                XFER_MAPPED_DATA(0)      <= XFER_VRAM_DATA(13);
+                                XFER_MAPPED_DATA(8)      <= XFER_VRAM_DATA(12);
+                                XFER_MAPPED_DATA(16)     <= XFER_VRAM_DATA(14);
+                            end if;
+                            XFER_CYCLE := 6;
+        
+                        -- Monochrome modes?
+                        -- Expand and store the slice of the character.
+                        --
+                        when 4 =>
+                            if CGROM_DATA(7) = '1' then
+                                XFER_MAPPED_DATA(23)     <= '1';
+                                if MODE_MZ80K = '1' or MODE_MZ80C = '1' then
+                                    XFER_MAPPED_DATA(7)  <= '1';
+                                    XFER_MAPPED_DATA(15) <= '1';
+                                end if;
+                            end if;
+                            if CGROM_DATA(6) = '1' then
+                                XFER_MAPPED_DATA(22)      <= '1';
+                                if MODE_MZ80K = '1' or MODE_MZ80C = '1' then
+                                    XFER_MAPPED_DATA(6)  <= '1';
+                                    XFER_MAPPED_DATA(14) <= '1';
+                                end if;
+                            end if;
+                            if CGROM_DATA(5) = '1' then
+                                XFER_MAPPED_DATA(21)     <= '1';
+                                if MODE_MZ80K = '1' or MODE_MZ80C = '1' then
+                                    XFER_MAPPED_DATA(5)  <= '1';
+                                    XFER_MAPPED_DATA(13) <= '1';
+                                end if;
+                            end if;
+                            if CGROM_DATA(4) = '1' then
+                                XFER_MAPPED_DATA(20)     <= '1';
+                                if MODE_MZ80K = '1' or MODE_MZ80C = '1' then
+                                    XFER_MAPPED_DATA(4)  <= '1';
+                                    XFER_MAPPED_DATA(12) <= '1';
+                                end if;
+                            end if;
+                            if CGROM_DATA(3) = '1' then
+                                XFER_MAPPED_DATA(19)     <= '1';
+                                if MODE_MZ80K = '1' or MODE_MZ80C = '1' then
+                                    XFER_MAPPED_DATA(3)  <= '1';
+                                    XFER_MAPPED_DATA(11) <= '1';
+                                end if;
+                            end if;
+                            if CGROM_DATA(2) = '1' then
+                                XFER_MAPPED_DATA(18)     <= '1';
+                                if MODE_MZ80K = '1' or MODE_MZ80C = '1' then
+                                    XFER_MAPPED_DATA(2)  <= '1';
+                                    XFER_MAPPED_DATA(10) <= '1';
+                                end if;
+                            end if;
+                            if CGROM_DATA(1) = '1' then
+                                XFER_MAPPED_DATA(17)     <= '1';
+                                if MODE_MZ80K = '1' or MODE_MZ80C = '1' then
+                                    XFER_MAPPED_DATA(1)  <= '1';
+                                    XFER_MAPPED_DATA(9)  <= '1';
+                                end if;
+                            end if;
+                            if CGROM_DATA(0) = '1' then
+                                XFER_MAPPED_DATA(16)     <= '1';
+                                if MODE_MZ80K = '1' or MODE_MZ80C = '1' then
+                                    XFER_MAPPED_DATA(0)  <= '1';
+                                    XFER_MAPPED_DATA(8)  <= '1';
+                                end if;
+                            end if;
+                            XFER_CYCLE := 5;
+        
+                        when 5 =>
+                            -- If invert option selected, invert green.
+                            --
+                          --  if (MODE_MZ80B = '1' and INVERSE_n = '0') or (MODE_MZ80A = '1' and DISPLAY_INVERT = '1') then
+                            if (MODE_MZ80A = '1' or MODE_MZ80B = '1')and DISPLAY_INVERT = '1' then
+                                XFER_MAPPED_DATA(23 downto 16) <= not XFER_MAPPED_DATA(23 downto 16);
+                            end if;
+                            XFER_CYCLE := 6;
+        
+                        when 6 =>
+                            -- Graphics ram enabled?
+                            --
+                            if GRAM_ENABLED = '1' and GRAM_MODE_REG(5) = '0' then
+                                -- Merge in the graphics data using defined mode.
+                                --
+                                case GRAM_MODE_REG(7 downto 6) is
+                                    when "00" =>
+                                        XFER_MAPPED_DATA <= XFER_MAPPED_DATA or   reverse_vector(DISPLAY_DATA(23 downto 16)) & reverse_vector(DISPLAY_DATA(15 downto 8)) & reverse_vector(DISPLAY_DATA(7 downto 0));
+                                    when "01" =>
+                                        XFER_MAPPED_DATA <= XFER_MAPPED_DATA and  reverse_vector(DISPLAY_DATA(23 downto 16)) & reverse_vector(DISPLAY_DATA(15 downto 8)) & reverse_vector(DISPLAY_DATA(7 downto 0));
+                                    when "10" =>
+                                        XFER_MAPPED_DATA <= XFER_MAPPED_DATA nand reverse_vector(DISPLAY_DATA(23 downto 16)) & reverse_vector(DISPLAY_DATA(15 downto 8)) & reverse_vector(DISPLAY_DATA(7 downto 0));
+                                    when "11" =>
+                                        XFER_MAPPED_DATA <= XFER_MAPPED_DATA xor  reverse_vector(DISPLAY_DATA(23 downto 16)) & reverse_vector(DISPLAY_DATA(15 downto 8)) & reverse_vector(DISPLAY_DATA(7 downto 0));
+                                end case;
+                            end if;
+                            XFER_CYCLE := 7;
+        
+                        when 7 =>
+                            -- For MZ80B, if enabled, blend in the graphics memory.
+                            --
+                            if MODE_MZ80B = '1' and XFER_DST_ADDR < 8192 then
+                                if GRAM_OPT_OUT1 = '1' and GRAM_OPT_OUT2 = '1' then
+                                    XFER_MAPPED_DATA(23 downto 16) <= XFER_MAPPED_DATA(23 downto 16) or reverse_vector(DISPLAY_DATA(7 downto 0)) or reverse_vector(DISPLAY_DATA(15 downto 8));
+                                elsif GRAM_OPT_OUT1 = '1' then
+                                    XFER_MAPPED_DATA(23 downto 16) <= XFER_MAPPED_DATA(23 downto 16) or reverse_vector(DISPLAY_DATA(7 downto 0));
+                                elsif GRAM_OPT_OUT2 = '1' then
+                                    XFER_MAPPED_DATA(23 downto 16) <= XFER_MAPPED_DATA(23 downto 16) or reverse_vector(DISPLAY_DATA(15 downto 8));
+                                end if;
+                            end if;
+                            XFER_CYCLE := 8;
+        
+                        -- Commence write of mapped data.
+                        when 8 =>
+                            XFER_R_WEN   <= '1';
+                            XFER_G_WEN   <= '1';
+                            XFER_B_WEN   <= '1';
+                            XFER_CYCLE   := 9;
+        
+                        -- Complete write and update address.
+                        when 9 =>
+                            -- Write cycle to framebuffer finished.
+                            XFER_R_WEN   <= '0';
+                            XFER_G_WEN   <= '0';
+                            XFER_B_WEN   <= '0';
+                            XFER_CYCLE   := 10;
+        
+                        when 10 =>
+                            -- For each source character, we generate 8 lines in the frame buffer. Thus we need to 
+                            -- process the same source row 8 times, each time incrementing the sub-row which is used
+                            -- to extract the next pixel set from the CG. This data is thus written into the destination as:-
+                            -- <Row:0,CGLine:0,0 .. MAX_COLUMN -1> <Row:0,CGLine:1,0.. MAX_COLUMN -1> .. <Row:0,CGLine:7,0.. MAX_COLUMN -1>
+                            -- ..
+                            -- <Row:24,CGLine:0,0 .. MAX_COLUMN -1><Row:24,CGLine:1,0.. MAX_COLUMN -1> .. <Row:24,CGLine:7,0.. MAX_COLUMN -1>
+                            --
+                            -- To achieve this, we keep a note of the column and sub-row, incrementing the source address until end of line
+                            -- then winding it back if we are still rendering the Characters for a given row. 
+                            -- Destination address always increments every clock cycle to take the next pixel set.
+                            --
+                            if XFER_SRC_COL < MAX_COLUMN - 1 then
+                                XFER_SRC_COL        := XFER_SRC_COL + 1;
+                                XFER_VRAM_ADDR      <= XFER_VRAM_ADDR + 1;
+                            else
+                                if XFER_DST_SUBROW < MAX_SUBROW -1 then
+                                    XFER_SRC_COL    := 0;
+                                    XFER_DST_SUBROW := XFER_DST_SUBROW + 1;
+                                    XFER_VRAM_ADDR  <= XFER_VRAM_ADDR - std_logic_vector((MAX_COLUMN - 1));
+                                else
+                                    XFER_SRC_COL    := 0;
+                                    XFER_VRAM_ADDR  <= XFER_VRAM_ADDR + 1;
+                                    XFER_DST_SUBROW := 0;
+                                end if;
+                            end if;
+        
+                            -- Destination address increments every tick.
+                            --
+                            XFER_DST_ADDR <= XFER_DST_ADDR + 1;
+                            XFER_CYCLE := 0;
+                        end case;
+                    end if;
+        
+                    -- On a new cycle, reset the transfer parameters.
+                    --
+                    if V_COUNT = V_LINE_END and H_COUNT = H_LINE_END - 1 then
+        
+                        -- Start of display, setup the start of VRAM for display according to machine. 
+                        if MODE_MZ80A = '1' then
+                            XFER_VRAM_ADDR <= (OFFSET_ADDR & "000");
+                        else
+                            XFER_VRAM_ADDR <= (others => '0');
+                        end if;
+                        XFER_DST_ADDR    <= (others => '0');
+                        XFER_CGROM_ADDR  <= (others => '0');
+                        XFER_SRC_COL     := 0;
+                        XFER_DST_SUBROW  := 0;
+                        XFER_CYCLE       := 0;
+                        XFER_ENABLED     := '0';
+                        XFER_R_WEN       <= '0';
+                        XFER_G_WEN       <= '0';
+                        XFER_B_WEN       <= '0';
+                        XFER_MAPPED_DATA <= (others => '0');
+                    end if;
             end if;
         end if;
 
@@ -915,7 +933,7 @@ begin
     -- The data is read out of the framebuffer, 8 pixels at a time and clocked out according to the timing clock. The H/V Sync and Blank signals are
     -- activated according to the mode selected and the values contained therein.
     --
-    process( VRESETn, VID_CLK )
+    GENVIDEO: process( VRESETn, VID_CLK, VIDEOMODE_RESET_TIMER )
     begin
         -- On reset, set the basic parameters which hold the video signal generator in reset
         -- then load up the required parameter set and generate the video signal.
@@ -950,111 +968,17 @@ begin
                 V_PX_CNT                     <= 0;
                 H_SHIFT_CNT                  <= 0;
                 FB_ADDR                      <= (others => '0');
-                VID_CLK_EN_TRIGGER           <= '0';
 
         elsif rising_edge(VID_CLK) then
 
---            -- Decode the enable signal based on the video clock. This is done to minimise clock delay inside the FPGA.
---            VID_CLK_EN_LAST                  <= VID_CLK;
---
---            if VID_CLK_EN_TRIGGER = '1' and VID_CLK_EN_LAST = '1' and VID_CLK = '0' then
---                VID_CLK_EN_TRIGGER           <= '0';
---            end if;
---            if VID_CLK_EN_TRIGGER = '0' and VID_CLK_EN_LAST = '0' and VID_CLK = '1' and VIDEOMODE_RESET_TIMER = 0 then
---                VID_CLK_EN_TRIGGER           <= '1';
---                VID_CLK_EN                   <= '1';
---            end if;
---            if VID_CLK_EN_TRIGGER = '1' and VID_CLK_EN = '1' then
---                VID_CLK_EN                   <= '0';
---            end if;
-
-            -- Ability to program the video parameter registers to tune or override the default values from the lookup table. This can be useful in debugging,
-            -- adjusting to a new monitor etc.
-            --
-            if CS_IO_0XX_n = '0' and CS_LAST_LEVEL(12) = '1' and VWRn = '0' then
-                case VADDR(3 downto 0) is
-                    when "0000" =>
-                        H_DSP_START(7 downto 0)       <= unsigned(VDATA);
-                    when "0001" =>
-                        H_DSP_START(15 downto 8)      <= unsigned(VDATA);
-                    when "0010" =>
-                        H_DSP_END(7 downto 0)         <= unsigned(VDATA);
-                    when "0011" =>
-                        H_DSP_END(15 downto 8)        <= unsigned(VDATA);
-                    when "0100" =>
-                        H_DSP_WND_START(7 downto 0)   <= unsigned(VDATA);
-                    when "0101" =>
-                        H_DSP_WND_START(15 downto 8)  <= unsigned(VDATA);
-                    when "0110" =>
-                        H_DSP_WND_END(7 downto 0)     <= unsigned(VDATA);
-                    when "0111" =>
-                        H_DSP_WND_END(15 downto 8)    <= unsigned(VDATA);
-                    when "1000" =>
-                        V_DSP_START(7 downto 0)       <= unsigned(VDATA);
-                    when "1001" =>
-                        V_DSP_START(15 downto 8)      <= unsigned(VDATA);
-                    when "1010" =>
-                        V_DSP_END(7 downto 0)         <= unsigned(VDATA);
-                    when "1011" =>
-                        V_DSP_END(15 downto 8)        <= unsigned(VDATA);
-                    when "1100" =>
-                        V_DSP_WND_START(7 downto 0)   <= unsigned(VDATA);
-                    when "1101" =>
-                        V_DSP_WND_START(15 downto 8)  <= unsigned(VDATA);
-                    when "1110" =>
-                        V_DSP_WND_END(7 downto 0)     <= unsigned(VDATA);
-                    when "1111" =>
-                        V_DSP_WND_END(15 downto 8)    <= unsigned(VDATA);
-                end case;
-            end if;
-            if CS_IO_1XX_n = '0' and CS_LAST_LEVEL(13) = '1' and VWRn = '0' then
-                case VADDR(3 downto 0) is
-                    when "0000" =>
-                        H_LINE_END(7 downto 0)        <= unsigned(VDATA);
-                    when "0001" =>
-                        H_LINE_END(15 downto 8)       <= unsigned(VDATA);
-                    when "0010" =>
-                        V_LINE_END(7 downto 0)        <= unsigned(VDATA);
-                    when "0011" =>
-                        V_LINE_END(15 downto 8)       <= unsigned(VDATA);
-                    when "0100" =>
-                        MAX_COLUMN(7 downto 0)        <= unsigned(VDATA);
-                    when "0101" =>
-                    when "0110" =>
-                        H_SYNC_START(7 downto 0)      <= unsigned(VDATA);
-                    when "0111" =>
-                        H_SYNC_START(15 downto 8)     <= unsigned(VDATA);
-                    when "1000" =>
-                        H_SYNC_END(7 downto 0)        <= unsigned(VDATA);
-                    when "1001" =>
-                        H_SYNC_END(15 downto 8)       <= unsigned(VDATA);
-                    when "1010" =>
-                        V_SYNC_START(7 downto 0)      <= unsigned(VDATA);
-                    when "1011" =>
-                        V_SYNC_START(15 downto 8)     <= unsigned(VDATA);
-                    when "1100" =>
-                        V_SYNC_END(7 downto 0)        <= unsigned(VDATA);
-                    when "1101" =>
-                        V_SYNC_END(15 downto 8)       <= unsigned(VDATA);
-                    when "1110" =>
-                        H_PX(7 downto 0)              <= unsigned(VDATA);
-                    when "1111" =>
-                        V_PX(7 downto 0)              <= unsigned(VDATA);
-                end case;
-            end if;
-    
             -- If the video mode changes, reset the variables to the initial state. This occurs
             -- at the end of a frame to minimise the monitor syncing incorrectly.
             --
-         --   if VIDEOMODE_CHANGED = '1' and VIDEOMODE_RESET_TIMER = 0 then
-         --       VIDEOMODE_RESET_TIMER            <= (others => '1');
-         --   end if;
             if VIDEOMODE_RESET_TIMER /= 0 then
-    
+
                 -- Iniitialise control registers.
                 --
                 FB_ADDR                          <= (others => '0');
-              --  VIDEOMODE_RESET_TIMER            <= VIDEOMODE_RESET_TIMER - 1;
     
                 -- Load up configuration from the look up table based on video mode.
                 --
@@ -1082,123 +1006,296 @@ begin
                 V_COUNT                          <= (others => '0');
                 H_BLANKi                         <= '1';
                 V_BLANKi                         <= '1';
-                H_SYNC_ni                        <= std_logic_vector(to_unsigned(FB_PARAMS(VIDEOMODE, 15), 1))(0);
-                V_SYNC_ni                        <= std_logic_vector(to_unsigned(FB_PARAMS(VIDEOMODE, 16), 1))(0);
+                H_SYNC_ni                        <= not std_logic_vector(to_unsigned(FB_PARAMS(VIDEOMODE, 15), 1))(0);
+                V_SYNC_ni                        <= not std_logic_vector(to_unsigned(FB_PARAMS(VIDEOMODE, 16), 1))(0);
                 H_PX_CNT                         <= 0;
                 V_PX_CNT                         <= 0;
                 H_SHIFT_CNT                      <= 0;
-    
+
             else
 
-                -- Process when the clock period is enabled.
---                if VID_CLK_EN = '1' then
+                -- Ability to adjust the video parameter registers to tune or override the default values from the lookup table. This can be useful in debugging,
+                -- adjusting to a new monitor etc.
+                --
+                if CS_IO_0XX_n = '0' and CS_LAST_LEVEL(12) = '1' and VWRn = '0' then
+                    case VADDR(3 downto 0) is
+                        when "0000" =>
+                            H_DSP_START(7 downto 0)       <= unsigned(VDATA);
+                        when "0001" =>
+                            H_DSP_START(15 downto 8)      <= unsigned(VDATA);
+                        when "0010" =>
+                            H_DSP_END(7 downto 0)         <= unsigned(VDATA);
+                        when "0011" =>
+                            H_DSP_END(15 downto 8)        <= unsigned(VDATA);
+                        when "0100" =>
+                            H_DSP_WND_START(7 downto 0)   <= unsigned(VDATA);
+                        when "0101" =>
+                            H_DSP_WND_START(15 downto 8)  <= unsigned(VDATA);
+                        when "0110" =>
+                            H_DSP_WND_END(7 downto 0)     <= unsigned(VDATA);
+                        when "0111" =>
+                            H_DSP_WND_END(15 downto 8)    <= unsigned(VDATA);
+                        when "1000" =>
+                            V_DSP_START(7 downto 0)       <= unsigned(VDATA);
+                        when "1001" =>
+                            V_DSP_START(15 downto 8)      <= unsigned(VDATA);
+                        when "1010" =>
+                            V_DSP_END(7 downto 0)         <= unsigned(VDATA);
+                        when "1011" =>
+                            V_DSP_END(15 downto 8)        <= unsigned(VDATA);
+                        when "1100" =>
+                            V_DSP_WND_START(7 downto 0)   <= unsigned(VDATA);
+                        when "1101" =>
+                            V_DSP_WND_START(15 downto 8)  <= unsigned(VDATA);
+                        when "1110" =>
+                            V_DSP_WND_END(7 downto 0)     <= unsigned(VDATA);
+                        when "1111" =>
+                            V_DSP_WND_END(15 downto 8)    <= unsigned(VDATA);
+                    end case;
+                end if;
+                if CS_IO_1XX_n = '0' and CS_LAST_LEVEL(13) = '1' and VWRn = '0' then
+                    case VADDR(3 downto 0) is
+                        when "0000" =>
+                            H_LINE_END(7 downto 0)        <= unsigned(VDATA);
+                        when "0001" =>
+                            H_LINE_END(15 downto 8)       <= unsigned(VDATA);
+                        when "0010" =>
+                            V_LINE_END(7 downto 0)        <= unsigned(VDATA);
+                        when "0011" =>
+                            V_LINE_END(15 downto 8)       <= unsigned(VDATA);
+                        when "0100" =>
+                            MAX_COLUMN(7 downto 0)        <= unsigned(VDATA);
+                        when "0101" =>
+                        when "0110" =>
+                            H_SYNC_START(7 downto 0)      <= unsigned(VDATA);
+                        when "0111" =>
+                            H_SYNC_START(15 downto 8)     <= unsigned(VDATA);
+                        when "1000" =>
+                            H_SYNC_END(7 downto 0)        <= unsigned(VDATA);
+                        when "1001" =>
+                            H_SYNC_END(15 downto 8)       <= unsigned(VDATA);
+                        when "1010" =>
+                            V_SYNC_START(7 downto 0)      <= unsigned(VDATA);
+                        when "1011" =>
+                            V_SYNC_START(15 downto 8)     <= unsigned(VDATA);
+                        when "1100" =>
+                            V_SYNC_END(7 downto 0)        <= unsigned(VDATA);
+                        when "1101" =>
+                            V_SYNC_END(15 downto 8)       <= unsigned(VDATA);
+                        when "1110" =>
+                            H_PX(7 downto 0)              <= unsigned(VDATA);
+                        when "1111" =>
+                            V_PX(7 downto 0)              <= unsigned(VDATA);
+                    end case;
+                end if;
+    
+                -- Activate/deactivate signals according to pixel position.
+                --
+                if H_COUNT =  H_DSP_START     then H_BLANKi  <= '0'; end if;
+            --  if H_COUNT =  H_LINE_END      then H_BLANKi  <= '0'; end if;
+                if H_COUNT =  H_DSP_END       then H_BLANKi  <= '1'; end if;
+                if H_COUNT =  H_SYNC_END      then H_SYNC_ni <= '1'; end if;
+                if H_COUNT =  H_SYNC_START    then H_SYNC_ni <= '0'; end if;
+                if V_COUNT =  V_DSP_START     then V_BLANKi  <= '0'; end if;
+            -- if V_COUNT =  V_LINE_END      then V_BLANKi  <= '0'; end if;
+                if V_COUNT =  V_DSP_END       then V_BLANKi  <= '1'; end if;
+                if V_COUNT =  V_SYNC_START    then V_SYNC_ni <= '0'; end if;
+                if V_COUNT =  V_SYNC_END      then V_SYNC_ni <= '1'; end if;
+    
+                -- If we are in the active visible area, stream the required output based on the various buffers.
+                --
+                if H_COUNT >= H_DSP_START and H_COUNT < H_DSP_END and V_COUNT >= V_DSP_START and V_COUNT < V_DSP_END then
+    
+                    if (V_COUNT >= V_DSP_WND_START and V_COUNT < V_DSP_WND_END-V_PX) and (H_COUNT >= H_DSP_WND_START and H_COUNT < H_DSP_WND_END) then
 
-                    -- Activate/deactivate signals according to pixel position.
-                    --
-                    if H_COUNT =  H_DSP_START     then H_BLANKi  <= '0'; end if;
-                 --   if H_COUNT =  H_LINE_END      then H_BLANKi  <= '0'; end if;
-                    if H_COUNT =  H_DSP_END       then H_BLANKi  <= '1'; end if;
-                    if H_COUNT =  H_SYNC_END      then H_SYNC_ni <= '1'; end if;
-                    if H_COUNT =  H_SYNC_START    then H_SYNC_ni <= '0'; end if;
-                    if V_COUNT =  V_DSP_START     then V_BLANKi  <= '0'; end if;
-                 --   if V_COUNT =  V_LINE_END      then V_BLANKi  <= '0'; end if;
-                    if V_COUNT =  V_DSP_END       then V_BLANKi  <= '1'; end if;
-                    if V_COUNT =  V_SYNC_START    then V_SYNC_ni <= '0'; end if;
-                    if V_COUNT =  V_SYNC_END      then V_SYNC_ni <= '1'; end if;
+                        -- Update Horizontal Pixel multiplier.
+                        --
+                        if H_PX_CNT = 0 then
     
-                    -- If we are in the active visible area, stream the required output based on the various buffers.
-                    --
-                    if H_COUNT >= H_DSP_START and H_COUNT < H_DSP_END and V_COUNT >= V_DSP_START and V_COUNT < V_DSP_END then
+                            H_PX_CNT             <= to_integer(H_PX);
+                            H_SHIFT_CNT          <= H_SHIFT_CNT - 1;
     
-                        if (V_COUNT >= V_DSP_WND_START and V_COUNT < V_DSP_WND_END) and (H_COUNT >= H_DSP_WND_START and H_COUNT < H_DSP_WND_END) then
-                            -- Update Horizontal Pixel multiplier.
+                            -- Main screen.
                             --
-                            if H_PX_CNT = 0 then
+                            if H_SHIFT_CNT = 0 then
     
-                                H_PX_CNT             <= to_integer(H_PX);
-                                H_SHIFT_CNT          <= H_SHIFT_CNT - 1;
-    
-                                -- Main screen.
+                                -- During the visible portion of the frame, data is stored in the frame buffer in bytes, 1 bit per pixel x 8 and 3 colors,
+                                -- thus 1 x 8 x 3 or 24 bit. Read out the values into shift registers to be serialised.
                                 --
-                                if H_SHIFT_CNT = 0 then -- and (V_COUNT >= V_DSP_WND_START and V_COUNT < V_DSP_WND_END) and (H_COUNT >= H_DSP_WND_START and H_COUNT < H_DSP_WND_END) then
-    
-                                    -- During the visible portion of the frame, data is stored in the frame buffer in bytes, 1 bit per pixel x 8 and 3 colors,
-                                    -- thus 1 x 8 x 3 or 24 bit. Read out the values into shift registers to be serialised.
-                                    --
-                                    SR_R_DATA        <= DISPLAY_DATA( 7 downto 0);
-                                    SR_B_DATA        <= DISPLAY_DATA(15 downto 8);
-                                    SR_G_DATA        <= DISPLAY_DATA(23 downto 16);
-                                    FB_ADDR          <= FB_ADDR + 1;
+                                SR_R_DATA        <= DISPLAY_DATA( 7 downto 0);
+                                SR_B_DATA        <= DISPLAY_DATA(15 downto 8);
+                                SR_G_DATA        <= DISPLAY_DATA(23 downto 16);
+                                FB_ADDR          <= FB_ADDR + 1;
 
-                                else -- H_SHIFT_CNT /= 0 then --and H_COUNT >= H_DSP_START and H_COUNT < H_DSP_END and V_COUNT >= V_DSP_START and V_COUNT < V_DSP_END then
-                                    -- During the active display area, if the shift counter is not 0 and the horizontal multiplier is equal to the setting,
-                                    -- shift the data in the shift register to display the next pixel.
-                                    --
-                                    SR_R_DATA        <= SR_R_DATA(6 downto 0) & '0';
-                                    SR_B_DATA        <= SR_B_DATA(6 downto 0) & '0';
-                                    SR_G_DATA        <= SR_G_DATA(6 downto 0) & '0';
+                            else -- H_SHIFT_CNT /= 0 then --and H_COUNT >= H_DSP_START and H_COUNT < H_DSP_END and V_COUNT >= V_DSP_START and V_COUNT < V_DSP_END then
+                                -- During the active display area, if the shift counter is not 0 and the horizontal multiplier is equal to the setting,
+                                -- shift the data in the shift register to display the next pixel.
+                                --
+                                SR_R_DATA        <= SR_R_DATA(6 downto 0) & '0';
+                                SR_B_DATA        <= SR_B_DATA(6 downto 0) & '0';
+                                SR_G_DATA        <= SR_G_DATA(6 downto 0) & '0';
     
-                                end if;
-                            else
-                                H_PX_CNT             <= H_PX_CNT - 1;
                             end if;
                         else
-                            -- Blank.
-                            --
-                            SR_R_DATA                <= (others => '0');
-                            SR_B_DATA                <= (others => '0');
-                            SR_G_DATA                <= (others => '0');
-                            H_PX_CNT                 <= to_integer(H_PX);
-                            H_SHIFT_CNT              <= 1;
+                            H_PX_CNT             <= H_PX_CNT - 1;
                         end if;
-    
                     else
-                        H_PX_CNT                     <= 0;
-                        H_SHIFT_CNT                  <= 0;
+                        -- Blank.
+                        --
+                        SR_R_DATA                <= (others => '0');
+                        SR_B_DATA                <= (others => '0');
+                        SR_G_DATA                <= (others => '0');
+                        H_PX_CNT                 <= 0; --to_integer(H_PX);
+                        H_SHIFT_CNT              <= 0; --1;
                     end if;
+    
+                else
+                    H_PX_CNT                     <= 0;
+                    H_SHIFT_CNT                  <= 0;
+                end if;
+    
+                -- Horizontal/Vertical counters are updated each clock cycle to accurately track pixel/timing.
+                --
+                if H_COUNT = H_LINE_END then
+                    H_COUNT                      <= (others => '0');
+                    H_PX_CNT                     <= 0;
+    
+                    -- Update Vertical Pixel multiplier.
+                    --
+                    if V_PX_CNT = 0 then
+                        V_PX_CNT                 <= to_integer(V_PX);
+                    else
+                        V_PX_CNT                 <= V_PX_CNT - 1;
+                    end if;
+    
+                    -- When we need to repeat a line due to pixel multiplying, wind back the framebuffer address to start of line.
+                    --
+                    if V_COUNT >= V_DSP_WND_START and V_COUNT < V_DSP_WND_END-V_PX and V_PX /= 0 and V_PX_CNT > 0 then
+                        FB_ADDR                  <= FB_ADDR - std_logic_vector(MAX_COLUMN);
+                    end if;
+    
+                    -- Once we have reached the end of the active vertical display, reset the framebuffer address.
+                    --
+                    if V_COUNT = V_DSP_END then
+                        FB_ADDR                  <= (others => '0');
+                    end if;
+    
+                    -- End of vertical line, increment to next or reset to beginning.
+                    --
+                    if V_COUNT = V_LINE_END then
+                        V_COUNT                  <= (others => '0');
+                        V_PX_CNT                 <= 0;
+                    else
+                        V_COUNT                  <= V_COUNT + 1;
+                    end if;
+
+                else
+                    H_COUNT                      <= H_COUNT + 1;
+                end if;
+            end if;
+        end if;
+    end process;
+
+    -- Dummy internal monitor sync and blanking signal generator.
+    -- When using VGA modes the mainboard still requires the sync signals even though the monitor is disabled.
+    -- If there was sufficient BRAM (M9K) then I would also generate the video signals based on an independent frame buffer (16K needed).
+    -- As there isnt sufficient BRAM the internal monitor is disabled when switching to VGA modes.
+    GENINTVIDEO: process(VRESETn, VID_CLK_I)
+    begin
+        -- On reset, set the basic parameters which hold the video signal generator in reset
+        -- then load up the required parameter set and generate the video signals.
+        --
+        if VRESETn = '0' then
+                H_I_DSP_START                  <= (others => '0');
+                H_I_DSP_END                    <= (others => '0');
+                V_I_DSP_START                  <= (others => '0');
+                V_I_DSP_END                    <= (others => '0');
+                H_I_LINE_END                   <= (others => '0');
+                V_I_LINE_END                   <= (others => '0');
+                H_I_SYNC_START                 <= (others => '0');
+                H_I_SYNC_END                   <= (others => '0');
+                V_I_SYNC_START                 <= (others => '0');
+                V_I_SYNC_END                   <= (others => '0');
+                H_I_COUNT                      <= (others => '0');
+                V_I_COUNT                      <= (others => '0');
+                H_I_BLANKi                     <= '1';
+                V_I_BLANKi                     <= '1';
+                H_I_SYNC_ni                    <= '1';
+                V_I_SYNC_ni                    <= '1';
+
+        elsif rising_edge(VID_CLK_I) then 
+
+            -- If the video mode changes, reset the variables to the initial state. This occurs
+            -- at the end of a frame to minimise the monitor syncing incorrectly.
+            --
+            if VIDEOMODE_RESET_TIMER /= 0 then
+    
+                -- Load up configuration using static values. Internal display can only display 40 or 80 chars.
+                --
+                if MODE_MONO or MODE_COLOUR then
+                    H_I_DSP_START                <= to_unsigned(0,              H_I_DSP_START'length);
+                    H_I_DSP_END                  <= to_unsigned(320,            H_I_DSP_END'length);
+                    V_I_DSP_START                <= to_unsigned(0,              V_I_DSP_START'length);
+                    V_I_DSP_END                  <= to_unsigned(200,            V_I_DSP_END'length);
+                    H_I_LINE_END                 <= to_unsigned(511,            H_I_LINE_END'length);
+                    V_I_LINE_END                 <= to_unsigned(259,            V_I_LINE_END'length);
+                    H_I_SYNC_START               <= to_unsigned(320  + 73,      H_I_SYNC_START'length);
+                    H_I_SYNC_END                 <= to_unsigned(320 + 73  + 45, H_I_SYNC_END'length);
+                    V_I_SYNC_START               <= to_unsigned(200 + 19,       V_I_SYNC_START'length);
+                    V_I_SYNC_END                 <= to_unsigned(200 + 19 + 4,   V_I_SYNC_END'length);
+                else
+                    H_I_DSP_START                <= to_unsigned(0,              H_I_DSP_START'length);
+                    H_I_DSP_END                  <= to_unsigned(640,            H_I_DSP_END'length);
+                    V_I_DSP_START                <= to_unsigned(0,              V_I_DSP_START'length);
+                    V_I_DSP_END                  <= to_unsigned(200,            V_I_DSP_END'length);
+                    H_I_LINE_END                 <= to_unsigned(1023,           H_I_LINE_END'length);
+                    V_I_LINE_END                 <= to_unsigned(259,            V_I_LINE_END'length);
+                    H_I_SYNC_START               <= to_unsigned(640  + 146,     H_I_SYNC_START'length);
+                    H_I_SYNC_END                 <= to_unsigned(640 + 146 + 90, H_I_SYNC_END'length);
+                    V_I_SYNC_START               <= to_unsigned(200 + 19,       V_I_SYNC_START'length);
+                    V_I_SYNC_END                 <= to_unsigned(200 + 19 + 4,   V_I_SYNC_END'length);
+                end if;
+    
+                H_I_COUNT                        <= (others => '0');
+                V_I_COUNT                        <= (others => '0');
+                H_I_BLANKi                       <= '0';
+                V_I_BLANKi                       <= '0';
+                H_I_SYNC_ni                      <= '1';
+                V_I_SYNC_ni                      <= '1';
+
+            else
+                    -- Activate/deactivate signals according to pixel position.
+                    --
+                  --if H_I_COUNT =  H_I_LINE_END      then H_I_BLANKi  <= '0'; end if;
+                  if H_I_COUNT =  H_I_DSP_START     then H_I_BLANKi  <= '0'; end if;
+                    if H_I_COUNT =  H_I_DSP_END       then H_I_BLANKi  <= '1'; end if;
+                    if H_I_COUNT =  H_I_SYNC_END      then H_I_SYNC_ni <= '1'; end if;
+                    if H_I_COUNT =  H_I_SYNC_START    then H_I_SYNC_ni <= '0'; end if;
+                 -- if V_I_COUNT =  V_I_LINE_END      then V_I_BLANKi  <= '0'; end if;
+                    if V_I_COUNT =  V_I_DSP_START     then V_I_BLANKi  <= '0'; end if;
+                    if V_I_COUNT =  V_I_DSP_END       then V_I_BLANKi  <= '1'; end if;
+                    if V_I_COUNT =  V_I_SYNC_START    then V_I_SYNC_ni <= '0'; end if;
+                    if V_I_COUNT =  V_I_SYNC_END      then V_I_SYNC_ni <= '1'; end if;
     
                     -- Horizontal/Vertical counters are updated each clock cycle to accurately track pixel/timing.
                     --
-                    if H_COUNT = H_LINE_END then
-                        H_COUNT                      <= (others => '0');
-                        H_PX_CNT                     <= 0;
-    
-                        -- Update Vertical Pixel multiplier.
-                        --
-                        if V_PX_CNT = 0 then
-                            V_PX_CNT                 <= to_integer(V_PX);
-                        else
-                            V_PX_CNT                 <= V_PX_CNT - 1;
-                        end if;
-    
-                        -- When we need to repeat a line due to pixel multiplying, wind back the framebuffer address to start of line.
-                        --
-                        if V_COUNT >= V_DSP_WND_START and V_COUNT < V_DSP_WND_END and V_PX /= 0 and V_PX_CNT > 0 then
-                            FB_ADDR                  <= FB_ADDR - std_logic_vector(MAX_COLUMN);
-                        end if;
-    
-                        -- Once we have reached the end of the active vertical display, reset the framebuffer address.
-                        --
-                        if V_COUNT = V_DSP_END then
-                            FB_ADDR                  <= (others => '0');
-                        end if;
+                    if H_I_COUNT = H_I_LINE_END then
+                        H_I_COUNT                <= (others => '0');
     
                         -- End of vertical line, increment to next or reset to beginning.
                         --
-                        if V_COUNT = V_LINE_END then
-                            V_COUNT                  <= (others => '0');
-                            V_PX_CNT                 <= 0;
+                        if V_I_COUNT = V_I_LINE_END then
+                            V_I_COUNT            <= (others => '0');
                         else
-                            V_COUNT                  <= V_COUNT + 1;
+                            V_I_COUNT            <= V_I_COUNT + 1;
                         end if;
-
                     else
-                        H_COUNT                      <= H_COUNT + 1;
+                        H_I_COUNT                <= H_I_COUNT + 1;
                     end if;
                 end if;
---            end if;
         end if;
     end process;
+
 
     -- Control Registers
     --
@@ -1215,7 +1312,7 @@ begin
     --   0xFC=<val> sets the Blue bit mask (1 bit = 1 pixel, 8 pixels per byte).
     --   0xFD=<val> memory page register. [1:0] switches in 1 16Kb page (3 pages) of graphics ram to C000 - FFFF. Bits [1:0] = page, 00 = off, 01 = Red, 10 = Green, 11 = Blue. This overrides all MZ700/MZ80B page switching functions. [7] 0 - normal, 1 - switches in CGROM for upload at D000:DFFF.
     --
-    process( VRESETn, IF_CLK, CGROM_PAGE, GRAM_PAGE, VIDEOMODE )
+    CTRLREGISTERS: process( VRESETn, IF_CLK, CGROM_PAGE, GRAM_PAGE, VIDEOMODE, MZ80B_VRAM_HI_ADDR, MZ80B_VRAM_LO_ADDR )
     begin
         -- Ensure default values at reset.
         if VRESETn='0' then
@@ -1229,6 +1326,7 @@ begin
             GRAM_OPT_OUT1         <= '0';
             GRAM_OPT_OUT2         <= '0';
             GRAM_ENABLED          <= '0';
+            PCGRAM                <= '0';
             MODE_MZ80A            <= '1';
             MODE_MZ700            <= '0';
             MODE_MZ800            <= '0';
@@ -1248,7 +1346,10 @@ begin
             CS_LAST_LEVEL         <= (others => '1');
             DISABLE_INT_DISPLAY   <= '0';
             DISPLAY_VGATE         <= '0';
-            VIDEOMODE_RESET_TIMER <= (others => '1');
+            VIDEOMODE_RESET_TIMER <= to_unsigned(2, VIDEOMODE_RESET_TIMER'length); --(others => '0') & '1';
+            CGRAM_ADDR            <= (others=>'0');
+            PCG_DATA              <= (others=>'0');
+            CGRAM_WE_n            <= '1';
     
         elsif rising_edge(IF_CLK) then
 
@@ -1287,6 +1388,7 @@ begin
                 -- Bits [2:0] define the Video Module machine compatibility.
                 -- Bit    [3] defines the 40/80 column mode, 0 = 40 col, 1 = 80 col.
                 -- Bit    [4] defines the colour mode, 0 = mono, 1 = colour - ignored on certain modes.
+                -- Bit    [5] defines wether PCGRAM is enabled, 0 = disabled, 1 = enabled.
                 -- Bits [7:6] define the VGA mode.
                 --
                 case VDATA(2 downto 0) is
@@ -1380,6 +1482,9 @@ begin
                             MODE_MONO80   <= '1';
                         end if;
                 end case;
+
+                -- PCG RAM, enable/disable.
+                PCGRAM                    <= VDATA(5);
 
                 -- The VGA Mode is used to change the type of VGA output frequency and resolution made to the external monitor.
                 VGAMODE                   <= VDATA(7 downto 6);
@@ -1489,50 +1594,24 @@ begin
                 end if;
             end if;
 
-            -- Remember the previous level so we can detect the edge transition. As the clock of this process is not necessarily running at the clock of the CPU
-            -- this step is important to guarantee transaction integrity.
-            CS_LAST_LEVEL                 <= CS_IO_FXX_n & CS_IO_EXX_n & CS_IO_1XX_n & CS_IO_0XX_n & CS_80B_PIO_n & CS_80B_PIT_n & CS_80B_PPI_n & CS_FB_PAGE_n & CS_GRAM_OPT_n & CS_FB_BLUE_n & CS_FB_GREEN_n & CS_FB_RED_n & CS_FB_CTL_n & CS_FB_VM_n & CS_SCROLL_n & CS_INVERT_n;
-
-            -- If video mode has changed then the reset timer is started, decrement it if it hasnt expired on each clock cycle.
-            if VIDEOMODE_RESET_TIMER /= 0 then
-                VIDEOMODE_RESET_TIMER     <= VIDEOMODE_RESET_TIMER - 1;
-            end if;
-        end if;
-
-        -- Non-registered signal vectors for readback.
-        -- Page register: [7] = CGROM Page setting, [6:2] = Current video mode, [1:0] = GRAM Page setting.
-        PAGE_MODE_REG              <=  CGROM_PAGE & std_logic_vector(to_unsigned(VIDEOMODE, 5)) & GRAM_PAGE;
-
-        -- MZ80B Graphics RAM is enabled whenever one of the two control lines goes active.
-        GRAM_ENABLED              <= MZ80B_VRAM_HI_ADDR or MZ80B_VRAM_LO_ADDR;
-    end process;
-    
-    --
-    -- PCG Access Registers
-    --
-    -- E010: PCG_DATA (byte to describe 8-pixel row of a character)
-    -- E011: PCG_ADDR (offset in the PCG in 8-pixel row unit) -> up to 256/8 = 32 characters
-    -- E012: PCG_CTRL
-    --                bit 0-1: character selector -> (PCG_ADDR + 256*(PCG_CTRL&3)) -> address in the range of the upper 128 characters font
-    --                bit 2 : font selector -> PCG_CTRL&2 == 0 -> 1st font else 2nd font
-    --                bit 3 : select which font for display
-    --                bit 4 : use programmable font for display
-    --                bit 5 : set programmable upper font -> PCG_CTRL&20 == 0 -> fixed upper 128 characters else programmable upper 128 characters
-    --                So if you want to change a character pattern (only doable in the upper 128 characters of a font), you need to:
-    --                - set bit 5 to 1 : PCG_CTRL[5] = 1
-    --                - set the font to select : PCG_CTRL[2] = font_number
-    --                - set the first row address of the character: PCG_ADDR[0..7] = row[0..7] and PCG_CTRL[0..1] = row[8..9]
-    --                - set the 8 pixels of the row in PCG_DATA
-    --
-    process( VRESETn, SYS_CLK ) begin
-        if VRESETn = '0' then
-            CGRAM_ADDR                <= (others=>'0');
-            PCG_DATA                  <= (others=>'0');
-            CGRAM_WE_n                <= '1';
-    
-        elsif rising_edge(SYS_CLK) then
-
-            if CS_PCG_n = '0' and VWRn = '0' then
+            --
+            -- PCG Access Registers
+            --
+            -- E010: PCG_DATA (byte to describe 8-pixel row of a character)
+            -- E011: PCG_ADDR (offset in the PCG in 8-pixel row unit) -> up to 256/8 = 32 characters
+            -- E012: PCG_CTRL
+            --                bit 0-1: character selector -> (PCG_ADDR + 256*(PCG_CTRL&3)) -> address in the range of the upper 128 characters font
+            --                bit 2 : font selector -> PCG_CTRL&2 == 0 -> 1st font else 2nd font
+            --                bit 3 : select which font for display
+            --                bit 4 : use programmable font for display
+            --                bit 5 : set programmable upper font -> PCG_CTRL&20 == 0 -> fixed upper 128 characters else programmable upper 128 characters
+            --                So if you want to change a character pattern (only doable in the upper 128 characters of a font), you need to:
+            --                - set bit 5 to 1 : PCG_CTRL[5] = 1
+            --                - set the font to select : PCG_CTRL[2] = font_number
+            --                - set the first row address of the character: PCG_ADDR[0..7] = row[0..7] and PCG_CTRL[0..1] = row[8..9]
+            --                - set the 8 pixels of the row in PCG_DATA
+            --
+            if CS_PCG_n = '0' and CS_LAST_LEVEL(16) = '1' and VWRn = '0' then
                 -- Set the PCG Data to program to RAM. 
                 if VADDR(1 downto 0) = "00" then
                     PCG_DATA                <= VDATA;
@@ -1550,9 +1629,25 @@ begin
                     CGRAM_SEL               <= VDATA(5);
                 end if;
             end if;
+
+            -- Remember the previous level so we can detect the edge transition. As the clock of this process is not necessarily running at the clock of the CPU
+            -- this step is important to guarantee transaction integrity.
+            CS_LAST_LEVEL                 <= CS_PCG_n & CS_IO_FXX_n & CS_IO_EXX_n & CS_IO_1XX_n & CS_IO_0XX_n & CS_80B_PIO_n & CS_80B_PIT_n & CS_80B_PPI_n & CS_FB_PAGE_n & CS_GRAM_OPT_n & CS_FB_BLUE_n & CS_FB_GREEN_n & CS_FB_RED_n & CS_FB_CTL_n & CS_FB_VM_n & CS_SCROLL_n & CS_INVERT_n;
+
+            -- If video mode has changed then the reset timer is started, decrement it if it hasnt expired on each clock cycle.
+            if VIDEOMODE_RESET_TIMER /= 0 and VID_CLK_IN_SYNC = '1' then 
+                VIDEOMODE_RESET_TIMER     <= VIDEOMODE_RESET_TIMER - 1;
+            end if;
         end if;
+
+        -- Non-registered signal vectors for readback.
+        -- Page register: [7] = CGROM Page setting, [6:2] = Current video mode, [1:0] = GRAM Page setting.
+        PAGE_MODE_REG              <=  CGROM_PAGE & std_logic_vector(to_unsigned(VIDEOMODE, 5)) & GRAM_PAGE;
+
+        -- MZ80B Graphics RAM is enabled whenever one of the two control lines goes active.
+        GRAM_ENABLED              <= MZ80B_VRAM_HI_ADDR or MZ80B_VRAM_LO_ADDR;
     end process;
-    --
+    
     -- CPU / RAM signals and selects.
     --
     Z80_MA               <= "00" & VADDR(9 downto 0)                        when MODE_MZ80K = '1'  or MODE_MZ80C = '1'
@@ -1769,19 +1864,19 @@ begin
     GRAM_DO_R            <= GRAM_DO_GI;
     GRAM_DO_B            <= GRAM_DO_GII;
     GRAM_DO_G            <= GRAM_DO_GIII;
-    GWEN_R               <= '1'                                             when VWRn = '0' and VMEM_CSn = '0' and GRAM_PAGE = "01" and GRAM_MODE_REG(3 downto 2) = "00"
+    GWEN_R               <= '1'                                             when VWRn = '0' and VMEM_CSn = '0'  and GRAM_PAGE = "01" and GRAM_MODE_REG(3 downto 2) = "00"
                             else
-                            '1'                                             when VWRn = '0' and VMEM_CSn = '0' and GRAM_PAGE = "01" and GRAM_MODE_REG(3 downto 2) = "11"
-                            else
-                            '0';
-    GWEN_B               <= '1'                                             when VWRn='0'   and VMEM_CSn = '0' and GRAM_PAGE = "10" and GRAM_MODE_REG(3 downto 2) = "10"
-                            else
-                            '1'                                             when VWRn='0'   and VMEM_CSn = '0' and GRAM_PAGE = "10" and GRAM_MODE_REG(3 downto 2) = "11"
+                            '1'                                             when VWRn = '0' and VMEM_CSn = '0'  and GRAM_PAGE = "01" and GRAM_MODE_REG(3 downto 2) = "11"
                             else
                             '0';
-    GWEN_G               <= '1'                                             when VWRn='0'   and VMEM_CSn = '0' and GRAM_PAGE = "11" and GRAM_MODE_REG(3 downto 2) = "01"
+    GWEN_B               <= '1'                                             when VWRn='0'   and VMEM_CSn = '0'  and GRAM_PAGE = "10" and GRAM_MODE_REG(3 downto 2) = "10"
                             else
-                            '1'                                             when VWRn='0'   and VMEM_CSn = '0' and GRAM_PAGE = "11" and GRAM_MODE_REG(3 downto 2) = "11"
+                            '1'                                             when VWRn='0'   and VMEM_CSn = '0'  and GRAM_PAGE = "10" and GRAM_MODE_REG(3 downto 2) = "11"
+                            else
+                            '0';
+    GWEN_G               <= '1'                                             when VWRn='0'   and VMEM_CSn = '0'  and GRAM_PAGE = "11" and GRAM_MODE_REG(3 downto 2) = "01"
+                            else
+                            '1'                                             when VWRn='0'   and VMEM_CSn = '0'  and GRAM_PAGE = "11" and GRAM_MODE_REG(3 downto 2) = "11"
                             else
                             '0';
     GRAM_VIDEO_DATA      <= GRAM_DO_R                                       when GRAM_MODE_REG(1 downto 0) = "00"
@@ -1875,22 +1970,16 @@ begin
                          else
                          VIDCLK_8MHZ;
 
---    VID_CLK_BUS       <= VIDCLK_31_5MHZ & VIDCLK_31_5MHZ & VIDCLK_31_5MHZ & VIDCLK_31_5MHZ & VIDCLK_25_175MHZ & VIDCLK_25_175MHZ & VIDCLK_25_175MHZ & VIDCLK_25_175MHZ & VIDCLK_25_175MHZ & VIDCLK_25_175MHZ & VIDCLK_25_175MHZ & VIDCLK_25_175MHZ & VIDCLK_16MHZ & VIDCLK_8MHZ & VIDCLK_17_734MHZ & VIDCLK_8_672MHZ & VIDCLK_16MHZ & VIDCLK_8MHZ & VIDCLK_16MHZ & VIDCLK_8MHZ;
-                        
---    VGA_R             <= (others => SR_R_DATA(7))                           when H_BLANKi='0' and V_BLANKi = '0' and ((DISPLAY_VGATE = '0' and MODE_MZ80B = '1') or MODE_MZ80B = '0')
---                         else
---                         (others => '0');
---    VGA_G             <= (others => SR_G_DATA(7))                           when H_BLANKi='0' and V_BLANKi = '0' and ((DISPLAY_VGATE = '0' and MODE_MZ80B = '1') or MODE_MZ80B = '0')
---                         else
---                         (others => '0');
---    VGA_B             <= (others => SR_B_DATA(7))                           when H_BLANKi='0' and V_BLANKi = '0' and ((DISPLAY_VGATE = '0' and MODE_MZ80B = '1') or MODE_MZ80B = '0')
---                         else
---                         (others => '0');
---    VGA_HS            <= H_SYNC_ni   when H_POLARITY(0) = '0' 
---                         else not H_SYNC_ni;
---    VGA_VS            <= V_SYNC_ni  when V_POLARITY(0) = '0' 
---                         else not V_SYNC_ni;
+    -- Internal monitor clock, 40/80 character modes.
+    VID_CLK_I         <= VIDCLK_8MHZ                                        when (MODE_MONO = '1' or MODE_COLOUR = '1')
+                         else
+                         VIDCLK_16MHZ;
 
+    -- Synchronise video reset by ensuring all the clocks are at the MARK state.
+    VID_CLK_IN_SYNC   <= '1'                                                when SYS_CLK = '0' and VID_CLK = '1' and VID_CLK_I = '1'
+                         else '0';
+
+    
     -- Output the VGA signals on the main clock edge, helps a bit with jitter.
     --
     process(SYS_CLK)
@@ -1918,130 +2007,21 @@ begin
         end if;
     end process;
 
-    -- Dummy internal monitor sync and blanking signal generator.
-    -- When using VGA modes the mainboard still requires the sync signals even though the monitor is disabled.
-    -- If there was sufficient BRAM (M9K) then I would also generate the video signals based on an independent frame buffer (16K needed).
-    -- As there isnt sufficient BRAM the internal monitor is disabled when switching to VGA modes.
-    process(VRESETn, VIDCLK_8MHZ)
-    begin
-        -- On reset, set the basic parameters which hold the video signal generator in reset
-        -- then load up the required parameter set and generate the video signals.
-        --
-        if VRESETn = '0' then
-                H_I_DSP_START                  <= (others => '0');
-                H_I_DSP_END                    <= (others => '0');
-                V_I_DSP_START                  <= (others => '0');
-                V_I_DSP_END                    <= (others => '0');
-                MAX_COLUMN_I                   <= (others => '0');
-                H_I_LINE_END                   <= (others => '0');
-                V_I_LINE_END                   <= (others => '0');
-                H_I_SYNC_START                 <= (others => '0');
-                H_I_SYNC_END                   <= (others => '0');
-                V_I_SYNC_START                 <= (others => '0');
-                V_I_SYNC_END                   <= (others => '0');
-                H_I_POLARITY                   <= (others => '0');
-                V_I_POLARITY                   <= (others => '0');
-                H_I_COUNT                      <= (others => '0');
-                V_I_COUNT                      <= (others => '0');
-                H_I_BLANKi                     <= '1';
-                V_I_BLANKi                     <= '1';
-                H_I_SYNC_ni                    <= '1';
-                V_I_SYNC_ni                    <= '1';
-
-        elsif rising_edge(VID_CLK_I) then 
-
-            -- If the video mode changes, reset the variables to the initial state. This occurs
-            -- at the end of a frame to minimise the monitor syncing incorrectly.
-            --
-            if VIDEOMODE_RESET_TIMER /= 0 then
-    
-                -- Load up configuration using static values. Internal display can only display 40 or 80 chars.
-                --
-                if MODE_MONO or MODE_COLOUR then
-                    H_I_DSP_START                <= to_unsigned(0, H_I_DSP_START'length);
-                    H_I_DSP_END                  <= to_unsigned(320, H_I_DSP_END'length);
-                    V_I_DSP_START                <= to_unsigned(0, V_I_DSP_START'length);
-                    V_I_DSP_END                  <= to_unsigned(200, V_I_DSP_END'length);
-                    H_I_LINE_END                 <= to_unsigned(511, H_I_LINE_END'length);
-                    V_I_LINE_END                 <= to_unsigned(259, V_I_LINE_END'length);
-                    MAX_COLUMN_I                 <= to_unsigned(40, MAX_COLUMN_I'length);
-                    H_I_SYNC_START               <= to_unsigned(320  + 73, H_I_SYNC_START'length);
-                    H_I_SYNC_END                 <= to_unsigned(320 + 73  + 45, H_I_SYNC_END'length);
-                    V_I_SYNC_START               <= to_unsigned(200 + 19, V_I_SYNC_START'length);
-                    V_I_SYNC_END                 <= to_unsigned(200 + 19 + 4, V_I_SYNC_END'length);
-                else
-                    H_I_DSP_START                <= to_unsigned(0, H_I_DSP_START'length);
-                    H_I_DSP_END                  <= to_unsigned(640, H_I_DSP_END'length);
-                    V_I_DSP_START                <= to_unsigned(0, V_I_DSP_START'length);
-                    V_I_DSP_END                  <= to_unsigned(200, V_I_DSP_END'length);
-                    H_I_LINE_END                 <= to_unsigned(1023, H_I_LINE_END'length);
-                    V_I_LINE_END                 <= to_unsigned(259, V_I_LINE_END'length);
-                    MAX_COLUMN_I                 <= to_unsigned(80, MAX_COLUMN_I'length);
-                    H_I_SYNC_START               <= to_unsigned(640  + 146, H_I_SYNC_START'length);
-                    H_I_SYNC_END                 <= to_unsigned(640 + 146 + 90, H_I_SYNC_END'length);
-                    V_I_SYNC_START               <= to_unsigned(200 + 19, V_I_SYNC_START'length);
-                    V_I_SYNC_END                 <= to_unsigned(200 + 19 + 4, V_I_SYNC_END'length);
-                end if;
-    
-                H_I_COUNT                        <= (others => '0');
-                V_I_COUNT                        <= (others => '0');
-                H_I_BLANKi                       <= '0';
-                V_I_BLANKi                       <= '0';
-                H_I_SYNC_ni                      <= '1';
-                V_I_SYNC_ni                      <= '1';
-
-            else
-                    -- Activate/deactivate signals according to pixel position.
-                    --
-                  --if H_I_COUNT =  H_I_LINE_END      then H_I_BLANKi  <= '0'; end if;
-                  if H_I_COUNT =  H_I_DSP_START     then H_I_BLANKi  <= '0'; end if;
-                    if H_I_COUNT =  H_I_DSP_END       then H_I_BLANKi  <= '1'; end if;
-                    if H_I_COUNT =  H_I_SYNC_END      then H_I_SYNC_ni <= '1'; end if;
-                    if H_I_COUNT =  H_I_SYNC_START    then H_I_SYNC_ni <= '0'; end if;
-                 -- if V_I_COUNT =  V_I_LINE_END      then V_I_BLANKi  <= '0'; end if;
-                    if V_I_COUNT =  V_I_DSP_START     then V_I_BLANKi  <= '0'; end if;
-                    if V_I_COUNT =  V_I_DSP_END       then V_I_BLANKi  <= '1'; end if;
-                    if V_I_COUNT =  V_I_SYNC_START    then V_I_SYNC_ni <= '0'; end if;
-                    if V_I_COUNT =  V_I_SYNC_END      then V_I_SYNC_ni <= '1'; end if;
-    
-                    -- Horizontal/Vertical counters are updated each clock cycle to accurately track pixel/timing.
-                    --
-                    if H_I_COUNT = H_I_LINE_END then
-                        H_I_COUNT                <= (others => '0');
-    
-                        -- End of vertical line, increment to next or reset to beginning.
-                        --
-                        if V_I_COUNT = V_I_LINE_END then
-                            V_I_COUNT            <= (others => '0');
-                        else
-                            V_I_COUNT            <= V_I_COUNT + 1;
-                        end if;
-                    else
-                        H_I_COUNT                <= H_I_COUNT + 1;
-                    end if;
-                end if;
-        end if;
-    end process;
-
-    VID_CLK_I         <= VIDCLK_8MHZ                                        when (MODE_MONO = '1' or MODE_COLOUR = '1')
-                         else
-                         VIDCLK_16MHZ;
-
-    
-    -- Control Registers
+    -- Mainboard Video output circuitry. This is the emulation of the MB14298/MB14299 gate arrays. We inject the video (serialised data) and the sync/blanking signals into the MB14298 socket
+    -- and these are combined on the mainboard to generate the internal monitor signals.
     --
-    -- MZ1200/80A: INVERT display, accessed at E014
-    VSRVIDEO_OUT      <= (SR_R_DATA(7) xor SR_B_DATA(7)) or SR_G_DATA(7) when DISABLE_INT_DISPLAY = '0' -- Video out from 74LS165 on mainboard, pre-GATE.
+    VSRVIDEO_OUT      <= (SR_R_DATA(7) xor SR_B_DATA(7)) or SR_G_DATA(7)    when DISABLE_INT_DISPLAY = '0' -- Video out from 74LS165 on mainboard, pre-GATE.
                          else '0';
-    VHBLNK_OUTn       <= not H_BLANKi  when DISABLE_INT_DISPLAY = '0'                                   -- Horizontal blanking.
+    VHBLNK_OUTn       <= not H_BLANKi  when DISABLE_INT_DISPLAY = '0'                                      -- Horizontal blanking.
                          else H_I_BLANKi;
-    VHSY_OUT          <= not H_SYNC_ni when DISABLE_INT_DISPLAY = '0'                                   -- Horizontal Sync.
+    VHSY_OUT          <= not H_SYNC_ni when DISABLE_INT_DISPLAY = '0'                                      -- Horizontal Sync.
                          else H_I_SYNC_ni;
-    VSYNCH_OUT        <= not V_SYNC_ni when DISABLE_INT_DISPLAY = '0'                                   -- Veritcal Sync.
+    VSYNCH_OUT        <= not V_SYNC_ni when DISABLE_INT_DISPLAY = '0'                                      -- Veritcal Sync.
                          else V_I_SYNC_ni;
-    VVBLNK_OUTn       <= not V_BLANKi  when DISABLE_INT_DISPLAY = '0'                                   -- Vertical blanking.
+    VVBLNK_OUTn       <= not V_BLANKi  when DISABLE_INT_DISPLAY = '0'                                      -- Vertical blanking.
                          else V_I_BLANKi;
 
+    -- Composite video signal output. Composite video is formed in hardware by the combination of VGA R/G/B signals.
     CSYNCn            <= not (H_SYNC_ni or V_SYNC_ni);
     CSYNC             <= H_SYNC_ni or V_SYNC_ni;
 
