@@ -13,7 +13,6 @@
 -- Copyright:       (c) 2018-20 Philip Smart <philip.smart@net2net.org>
 --
 -- History:         June 2020 - Initial creation.
---                  Sep 2020  - First release.
 --
 ---------------------------------------------------------------------------------------------------------
 -- This source file is free software: you can redistribute it and-or modify
