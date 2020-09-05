@@ -108,7 +108,9 @@ architecture rtl of VideoInterface is
 
     -- Clock generation wires.
     signal CLOCK_48               :       std_logic;                                     -- 16MHz used for the Video main frequency.
+    signal CLK24Mi                :       std_logic;                                     -- 24MHz used for internal clocking.
     signal CLK16Mi                :       std_logic;                                     -- 16MHz used for internal clocking.
+    signal CLK4_8Mi               :       std_logic;                                     -- 4.8MHz used for the CPU main frequency in custom mode.
     signal CLK4Mi                 :       std_logic;                                     -- 4MHz used for the CPU main frequency in MZ80B mode.
     signal CLK3_54Mi              :       std_logic;                                     -- 3.54MHz used for the CPU main frequency in MZ700 mode.
     signal CLK2Mi                 :       std_logic;                                     -- 2MHz used for the CPU main frequency.
@@ -128,7 +130,8 @@ architecture rtl of VideoInterface is
 
     signal MODE_MZ80A             :       std_logic := '1';                              -- The System board is running in MZ80A mode.
     signal MODE_MZ700             :       std_logic := '0';                              -- The System board is running in MZ700 mode.
-    signal MODE_MZ80B             :       std_logic := '0';                              -- The System baord is running in MZ80B mode.
+    signal MODE_MZ80B             :       std_logic := '0';                              -- The System board is running in MZ80B mode.
+    signal MODE_CUSTOM            :       std_logic := '0';                              -- The System board is running in custom mode.
     signal CPLD_CTRL_REG          :       std_logic_vector(7 downto 0);                  -- Current value of the CPLD control register.
 
     function to_std_logic(L: boolean) return std_logic is
@@ -190,12 +193,12 @@ begin
 
 
     -- A tranZPUter signal serializer. Signals required by the Video Module but not accessible physically (without hardware hacks) are captured and serialised by the tranZPUter
-    -- as a set of 4 x 4 blocks, clocked by the video module, As the mainboard can not run faster than 4MHz, a 16MHz serialiser clock should be sufficient to bring the signals across 
-    -- but can be increased as necessary.
+    -- as a set of 4 x 4 blocks, clocked by the video interace CPLD, As the mainboard can not run faster than 4MHz, a 24MHz serialiser clock should be sufficient to bring the
+    -- signals across but can be increased as necessary.
     -- Reset synchronises the Video Module CPLD with the tranZPUter CPLD and the signals are sent during valid mainboard accesses. During tranZPUter accesses, both
     -- IORQn and MEM_CSn are sent as 0, an invalid state, to indicate the signals are not valid.
     --
-    SIGNALSERIALIZER: process(RESETn, CLK16Mi, ENASERCLK)
+    SIGNALSERIALIZER: process(RESETn, CLK24Mi, ENASERCLK)
     begin
         -- Each reset the FPGA and CPLD are in sync, set the signals to the starting level ready to commence serialization.
         if RESETn = '0' then
@@ -207,7 +210,7 @@ begin
             IORQn                       <= '1';
             MEM_CSn                     <= '1';
 
-        elsif rising_edge(CLK16Mi) then
+        elsif falling_edge(CLK24Mi) then
 
             case RCV_CYCLE is
                 -- Cycle starts by enabling the clock which the tranZPUter sees the rising edge and captures the 16 signals and places the 
@@ -242,7 +245,7 @@ begin
 
         -- Enable the clock directly onto the bus clock line when data required.
         if ENASERCLK = '1' then
-            OUTCLK <= CLK16Mi;
+            OUTCLK <= CLK24Mi;
         else
             OUTCLK <= '0';
         end if;
@@ -310,20 +313,26 @@ begin
     -- The 48MHz clock is used to create the base system clocks, 16MHz being the original machine base clock along with 4, 2 and 1MHz.
     -- This logic was originally performed by the MB14298 Gate Array on the mainboard.
     --
-    SYSCLOCKS: process(RESETn, CLOCK_48, CLK4Mi, CLK3_54Mi, CLK2Mi, CLK1Mi, CLK31500i, MODE_MZ80A, MODE_MZ80B, MODE_MZ700)
-        variable counter16Mi            : unsigned(4 downto 0);                -- Binary divider to create 16Mi clock.
-        variable counter4Mi             : unsigned(4 downto 0);                -- Binary divider to create 4Mi clock.
+    SYSCLOCKS: process(RESETn, CLOCK_48, CLK24Mi, CLK4_8Mi, CLK4Mi, CLK3_54Mi, CLK2Mi, CLK1Mi, CLK31500i, MODE_MZ80A, MODE_MZ80B, MODE_MZ700, MODE_CUSTOM)
+        variable counter24Mi            : unsigned(1 downto 0);                -- Binary divider to create 24Mi clock.
+        variable counter16Mi            : unsigned(1 downto 0);                -- Binary divider to create 16Mi clock.
+        variable counter4_8Mi           : unsigned(2 downto 0);                -- Binary divider to create 4_8Mi clock.
+        variable counter4Mi             : unsigned(3 downto 0);                -- Binary divider to create 4Mi clock.
         variable counter2Mi             : unsigned(3 downto 0);                -- Binary divider to create 2Mi clock.
         variable counter1Mi             : unsigned(4 downto 0);                -- Binary divider to create 1Mi clock.
         variable counter31500i          : unsigned(10 downto 0);               -- Binary divider to create 31500i clock.
     begin
         if RESETn = '0' then
+            counter24Mi                 := (others => '0');
             counter16Mi                 := (others => '0');
+            counter4_8Mi                := (others => '0');
             counter4Mi                  := (others => '0');
             counter2Mi                  := (others => '0');
             counter1Mi                  := (others => '0');
             counter31500i               := (others => '0');
-            CLK16Mi                     <= '1';
+            CLK24Mi                     <= '0';
+            CLK16Mi                     <= '0';
+            CLK4_8Mi                    <= '0';
             CLK4Mi                      <= '0';
             CLK2Mi                      <= '0';
             CLK1Mi                      <= '0';
@@ -331,11 +340,19 @@ begin
 
         elsif rising_edge(CLOCK_48) then
 
+            counter24Mi                 := counter24Mi + 1;
             counter16Mi                 := counter16Mi + 1;
+            counter4_8Mi                := counter4_8Mi + 1;
             counter4Mi                  := counter4Mi + 1;
             counter2Mi                  := counter2Mi + 1;
             counter1Mi                  := counter1Mi + 1;
             counter31500i               := counter31500i + 1;
+
+            -- 24000000Hz 
+            if counter24Mi = 1 then
+                CLK24Mi                 <= not CLK24Mi;
+                counter24Mi             := (others => '0');
+            end if;
 
             -- 16000000Hz 
             if counter16Mi = 2 or counter16Mi = 3 then
@@ -343,6 +360,12 @@ begin
                 if counter16Mi = 3 then
                     counter16Mi         := (others => '0');
                 end if;
+            end if;
+
+            -- 4800000Hz 
+            if counter4_8Mi = 5 then
+                CLK4_8Mi                <= not CLK4_8Mi;
+                counter4_8Mi            := (others => '0');
             end if;
 
             -- 4000000Hz 
@@ -382,6 +405,8 @@ begin
             CLK_2MHZ_OUT                <= CLK4Mi;
         elsif MODE_MZ700 = '1' then
             CLK_2MHZ_OUT                <= CLK3_54Mi;
+        elsif MODE_CUSTOM = '1' then
+            CLK_2MHZ_OUT                <= CLK4_8Mi;
         else -- Additional modes go here.
             CLK_2MHZ_OUT                <= CLK2Mi;
         end if;
@@ -423,6 +448,7 @@ begin
             MODE_MZ80A                  <= '1';
             MODE_MZ80B                  <= '0';
             MODE_MZ700                  <= '0';
+            MODE_CUSTOM                 <= '0';
             CPLD_CTRL_REG               <= "00000000";
 
         elsif rising_edge(CLK16Mi) then
@@ -433,6 +459,7 @@ begin
                 MODE_MZ80A              <= '0';
                 MODE_MZ80B              <= '0';
                 MODE_MZ700              <= '0';
+                MODE_CUSTOM             <= '0';
 
                 -- Bits 2:0 select the system clock which drives the mainboard/CPU.
                 --
@@ -443,6 +470,8 @@ begin
                         MODE_MZ80B      <= '1';
                     when "010" =>
                         MODE_MZ700      <= '1';
+                    when "011" =>
+                        MODE_CUSTOM     <= '1';
 
                     when others =>
                         MODE_MZ80A      <= '1';

@@ -114,8 +114,8 @@ set_location_assignment PIN_16 -to VRAM_CS_INn
 set_location_assignment PIN_90 -to INDATA[3]
 set_location_assignment PIN_88 -to INDATA[2]
 set_location_assignment PIN_87 -to INDATA[1]
-set_location_assignment PIN_84 -to OUTCLK
 set_location_assignment PIN_83 -to INDATA[0]
+set_location_assignment PIN_84 -to OUTCLK
 
 # Z80 Data Bus
 # ============
