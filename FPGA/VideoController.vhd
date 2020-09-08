@@ -196,7 +196,6 @@ architecture rtl of VideoController is
     signal VRAM_VIDEO_DATA       :     std_logic_vector(7 downto 0);         -- Display data output to CPU.
     signal VRAM_DO               :     std_logic_vector(7 downto 0);         -- VRAM Data out.
     signal VRAM_WEN              :     std_logic;                            -- VRAM Write enable signal.
-    signal GRAM_VIDEO_DATA       :     std_logic_vector(7 downto 0);         -- Graphics display data output to CPU.
     signal GRAM_ADDR             :     std_logic_vector(13 downto 0);        -- Graphics RAM Address.
     signal GRAM_DI_R             :     std_logic_vector(7 downto 0);         -- Graphics Red RAM Data.
     signal GRAM_DI_G             :     std_logic_vector(7 downto 0);         -- Graphics Green RAM Data.
@@ -225,8 +224,7 @@ architecture rtl of VideoController is
     signal GRAM_OPT_WRITE        :     std_logic;                            -- Graphics write to GRAMI (0) or GRAMII (1) for MZ80B/MZ2000
     signal GRAM_OPT_OUT1         :     std_logic;                            -- Graphics enable GRAMI output to display
     signal GRAM_OPT_OUT2         :     std_logic;                            -- Graphics enable GRAMII output to display
-    signal GRAM_PAGE             :     std_logic_vector(1 downto 0);         -- Graphics mode page select (which GRAM block is enabled.)
-    signal GRAM_ENABLED          :     std_logic;                            -- Graphics mode enabled flag.
+    signal GRAM_PAGE_ENABLE      :     std_logic;                            -- Graphics mode page enable.
     signal VIDEO_MODE_REG        :     std_logic_vector(7 downto 0);         -- Programmable mode register to control video mode.
     signal PAGE_MODE_REG         :     std_logic_vector(7 downto 0);         -- Current value of the Page register.
     signal Z80_MA                :     std_logic_vector(11 downto 0);        -- CPU Address Masked according to machine model.
@@ -257,6 +255,7 @@ architecture rtl of VideoController is
     signal MZ80B_BOOT            :     std_logic;                            -- MZ80B Boot process taking place, memory in default setting of $0000.
     signal MZ80B_VRAM_HI_ADDR    :     std_logic;                            -- Video RAM located at D000:FFFF when high.
     signal MZ80B_VRAM_LO_ADDR    :     std_logic;                            -- Video RAM located at 5000:7FFF when high.
+    signal GRAM_MZ80B_ENABLE     :     std_logic;                            -- MZ80B Graphics memory enabled flag.
     signal CS_IO_EXX_n           :     std_logic;                            -- Chip select for block E0:EF
     signal CS_IO_FXX_n           :     std_logic;                            -- Chip select for block F0:FF
     signal CS_80B_PPI_n          :     std_logic;                            -- Chip select for MZ80B PPI when in MZ80B mode.
@@ -378,8 +377,8 @@ begin
     --
     VRAM0 : dpram
     GENERIC MAP (
-        init_file            => null,
-        --init_file            => "../../software/mif/VRAM_TEST.mif",
+        --init_file            => null,
+        init_file            => "../../software/mif/VRAM_TEST.mif",
         widthad_a            => 12,
         width_a              => 8,
         widthad_b            => 11,
@@ -650,11 +649,11 @@ begin
                         when 2 =>
                             -- Check to see if VRAM is disabled, if it is, skip.
                             --
-                            if GRAM_MODE_REG(5) = '0' and GRAM_MODE_REG(4) = '0' and (MODE_MONO = '1' or MODE_MONO80 = '1') then
+                            if    GRAM_MODE_REG(4) = '0' and (MODE_MONO = '1' or MODE_MONO80 = '1') then
                                 -- Monochrome modes?
                                 XFER_CYCLE := 4;
         
-                            elsif GRAM_MODE_REG(5) = '0' and GRAM_MODE_REG(4) = '0' and (MODE_COLOUR = '1' or MODE_COLOUR80 = '1') then
+                            elsif GRAM_MODE_REG(4) = '0' and (MODE_COLOUR = '1' or MODE_COLOUR80 = '1') then
                                 -- Colour modes?
                                 XFER_CYCLE := 3;
         
@@ -815,7 +814,7 @@ begin
                         when 6 =>
                             -- Graphics ram enabled?
                             --
-                            if GRAM_ENABLED = '1' and GRAM_MODE_REG(5) = '0' then
+                            if GRAM_MODE_REG(5) = '0' then
                                 -- Merge in the graphics data using defined mode.
                                 --
                                 case GRAM_MODE_REG(7 downto 6) is
@@ -1312,20 +1311,20 @@ begin
     --   0xFC=<val> sets the Blue bit mask (1 bit = 1 pixel, 8 pixels per byte).
     --   0xFD=<val> memory page register. [1:0] switches in 1 16Kb page (3 pages) of graphics ram to C000 - FFFF. Bits [1:0] = page, 00 = off, 01 = Red, 10 = Green, 11 = Blue. This overrides all MZ700/MZ80B page switching functions. [7] 0 - normal, 1 - switches in CGROM for upload at D000:DFFF.
     --
-    CTRLREGISTERS: process( VRESETn, IF_CLK, CGROM_PAGE, GRAM_PAGE, VIDEOMODE, MZ80B_VRAM_HI_ADDR, MZ80B_VRAM_LO_ADDR )
+    CTRLREGISTERS: process( VRESETn, IF_CLK, CGROM_PAGE, GRAM_PAGE_ENABLE, VIDEOMODE, MZ80B_VRAM_HI_ADDR, MZ80B_VRAM_LO_ADDR )
     begin
         -- Ensure default values at reset.
         if VRESETn='0' then
             DISPLAY_INVERT        <= '0';
             OFFSET_ADDR           <= (others => '0');
-            GRAM_MODE_REG         <= "00001100";
+            GRAM_MODE_REG         <= "00101100";
             GRAM_R_FILTER         <= (others => '1');
             GRAM_G_FILTER         <= (others => '1');
             GRAM_B_FILTER         <= (others => '1');
             GRAM_OPT_WRITE        <= '0';
             GRAM_OPT_OUT1         <= '0';
             GRAM_OPT_OUT2         <= '0';
-            GRAM_ENABLED          <= '0';
+            GRAM_MZ80B_ENABLE     <= '0';
             PCGRAM                <= '0';
             MODE_MZ80A            <= '1';
             MODE_MZ700            <= '0';
@@ -1341,7 +1340,7 @@ begin
             MODE_COLOUR80         <= '0';
             VIDEO_MODE_REG        <= "00000000";
             VGAMODE               <= "00";
-            GRAM_PAGE             <= (others => '0');
+            GRAM_PAGE_ENABLE      <= '0';
             CGROM_PAGE            <= '0';
             CS_LAST_LEVEL         <= (others => '1');
             DISABLE_INT_DISPLAY   <= '0';
@@ -1531,9 +1530,9 @@ begin
                 GRAM_OPT_OUT2             <= VDATA(2);
             end if;
 
-            -- memory page register. [1:0] switches in 1 16Kb page (3 pages) of graphics ram to C000 - FFFF. Bits [1:0] = page, 00 = off, 01 = Red, 10 = Green, 11 = Blue. This overrides all MZ700/MZ80B page switching functions. [7] 0 - normal, 1 - switches in CGROM for upload at D000:DFFF.
+            -- memory page register. [0] switches in a 16Kb page of graphics ram to C000 - FFFF as determined by the GRAM_MODE_REG[3:0]. [0] = 0 - graphics RAM off (paged out), [0] = 1 - graphics RAM on (paged in). This overrides all MZ700/MZ80B page switching functions. [7] 0 - normal CGROM operation, 1 - switches in CGROM for upload at D000:DFFF.
             if CS_FB_PAGE_n = '0' and CS_LAST_LEVEL(8) = '1' then
-                GRAM_PAGE                 <= VDATA(1 downto 0);
+                GRAM_PAGE_ENABLE          <= VDATA(0);
                 CGROM_PAGE                <= VDATA(7);
             end if;
 
@@ -1641,11 +1640,11 @@ begin
         end if;
 
         -- Non-registered signal vectors for readback.
-        -- Page register: [7] = CGROM Page setting, [6:2] = Current video mode, [1:0] = GRAM Page setting.
-        PAGE_MODE_REG              <=  CGROM_PAGE & std_logic_vector(to_unsigned(VIDEOMODE, 5)) & GRAM_PAGE;
+        -- Page register: [7] = CGROM Page setting, [6:1] = Current video mode, [1:0] = GRAM Page setting.
+        PAGE_MODE_REG              <=  CGROM_PAGE & std_logic_vector(to_unsigned(VIDEOMODE, 6)) & GRAM_PAGE_ENABLE;
 
         -- MZ80B Graphics RAM is enabled whenever one of the two control lines goes active.
-        GRAM_ENABLED              <= MZ80B_VRAM_HI_ADDR or MZ80B_VRAM_LO_ADDR;
+        GRAM_MZ80B_ENABLE          <= MZ80B_VRAM_HI_ADDR or MZ80B_VRAM_LO_ADDR;
     end process;
     
     -- CPU / RAM signals and selects.
@@ -1659,10 +1658,9 @@ begin
                             else '1';
     CS_DARAM_n           <= '0'                                             when VMEM_CSn = '0'    and VADDR(13 downto 11) = "011"
                             else '1';
-    CS_EXXX_n            <= '0'                                             when VMEM_CSn = '0'    and VADDR(13 downto 11) = "100" and GRAM_ENABLED = '0'         -- Normal memory mapped I/O if Graphics Option not enabled.
+    CS_EXXX_n            <= '0'                                             when VMEM_CSn = '0'    and VADDR(13 downto 11) = "100" and GRAM_PAGE_ENABLE = '0' and (MODE_MZ80B = '0' or (MODE_MZ80B = '1' and GRAM_MZ80B_ENABLE = '0'))        -- Normal memory mapped I/O if Graphics Option not enabled.
                             else '1';
-
-    CS_GRAM_n            <= '0'                                             when VMEM_CSn = '0'    and VADDR(13) = '1'             and GRAM_ENABLED = '1'         -- Graphics Option Memory enabled, will be located from E000:FFFF (8K)
+    CS_GRAM_n            <= '0'                                             when VMEM_CSn = '0'    and VADDR(13) = '1'             and MODE_MZ80B = '1'       and GRAM_MZ80B_ENABLE = '1'                                                     -- Graphics Option Memory enabled, will be located from E000:FFFF (8K)
                             else '1';
     CS_IO_0XX_n          <= '0'                                             when VIORQn = '0'      and VADDR(7 downto 4) = "0000"
                             else '1';
@@ -1711,20 +1709,18 @@ begin
     -- 0xFC set the Blue bit mask (1 bit = 1 pixel, 8 pixels per byte).
     CS_FB_BLUE_n         <= '0'                                             when CS_IO_FXX_n = '0' and VADDR(3 downto 0) = "1100"
                             else '1';
-    -- 0xFD set the Video memory page in block C000:FFFF. 00 = Normal memory map, 01 = Red Video RAM, 10 = Green Video RAM, 11 = Blue Video RAM.
+    -- 0xFD set the Video memory page in block C000:FFFF bit 0, set the CGROM upload access in bit 7.
     CS_FB_PAGE_n         <= '0'                                             when CS_IO_FXX_n = '0' and VADDR(3 downto 0) = "1101"
                             else '1';
     
     -- Data for CPU to read, dependent on what is being accessed.
     VDATA                <= VRAM_VIDEO_DATA                                 when VRDn = '0' and CS_DXXX_n = '0'   and CGROM_PAGE = '0'
                             else
-                            GRAM_VIDEO_DATA                                 when VRDn = '0' and VMEM_CSn = '0'    and VADDR(13) = '1'
+                            GRAM_DO_R                                       when VRDn = '0' and VMEM_CSn = '0'    and GRAM_PAGE_ENABLE = '1' and GRAM_MODE_REG(1 downto 0) = "00"                            -- For direct framebuffer access, C000:FFFF is assigned to the framebuffer during a read if the GRAM_PAGE_ENABLE register is not 0. 
                             else
-                            GRAM_DO_R                                       when VRDn = '0' and VMEM_CSn = '0'    and GRAM_PAGE = "01"                            -- For direct framebuffer access, C000:FFFF is assigned to the framebuffer during a read if the GRAM_PAGE register is not 0. 
+                            GRAM_DO_B                                       when VRDn = '0' and VMEM_CSn = '0'    and GRAM_PAGE_ENABLE = '1' and GRAM_MODE_REG(1 downto 0) = "01"
                             else
-                            GRAM_DO_B                                       when VRDn = '0' and VMEM_CSn = '0'    and GRAM_PAGE = "10"
-                            else
-                            GRAM_DO_G                                       when VRDn = '0' and VMEM_CSn = '0'    and GRAM_PAGE = "11"
+                            GRAM_DO_G                                       when VRDn = '0' and VMEM_CSn = '0'    and GRAM_PAGE_ENABLE = '1' and GRAM_MODE_REG(1 downto 0) = "10"
                             else
                             GRAM_DO_GI                                      when VRDn = '0' and CS_GRAM_n = '0'   and GRAM_OPT_WRITE = '0'                        -- For MZ80B GRAM I memory read - lower 8K  of red framebuffer.
                             else
@@ -1810,7 +1806,7 @@ begin
                             else
                             (others=>'Z');
 
-    VRAM_WEN             <= '1'                                             when VWRn = '0'   and CS_DXXX_n = '0' and CGROM_PAGE = '0'
+    VRAM_WEN             <= '1'                                             when VWRn = '0'   and CS_DXXX_n = '0' and CGROM_PAGE = '0' and GRAM_PAGE_ENABLE = '0'
                             else '0';
     VRAM_VIDEO_DATA      <= VRAM_DO;
     
@@ -1833,7 +1829,7 @@ begin
                             else (others => '1');
     CG_ADDR              <= CGRAM_ADDR(11 downto 0)                         when CGRAM_WE_n = '0'
                             else XFER_CGROM_ADDR;
-    CGROM_WEN            <= '1'                                             when VWRn = '0'   and CS_DXXX_n = '0' and CGROM_PAGE = '1'
+    CGROM_WEN            <= '1'                                             when VWRn = '0'   and CS_DXXX_n = '0' and CGROM_PAGE = '1' and GRAM_PAGE_ENABLE = '0'
                             else '0';
     
     
@@ -1864,28 +1860,21 @@ begin
     GRAM_DO_R            <= GRAM_DO_GI;
     GRAM_DO_B            <= GRAM_DO_GII;
     GRAM_DO_G            <= GRAM_DO_GIII;
-    GWEN_R               <= '1'                                             when VWRn = '0' and VMEM_CSn = '0'  and GRAM_PAGE = "01" and GRAM_MODE_REG(3 downto 2) = "00"
+    GWEN_R               <= '1'                                             when VWRn = '0' and VMEM_CSn = '0'  and GRAM_PAGE_ENABLE = '1' and GRAM_MODE_REG(3 downto 2) = "00"
                             else
-                            '1'                                             when VWRn = '0' and VMEM_CSn = '0'  and GRAM_PAGE = "01" and GRAM_MODE_REG(3 downto 2) = "11"
-                            else
-                            '0';
-    GWEN_B               <= '1'                                             when VWRn='0'   and VMEM_CSn = '0'  and GRAM_PAGE = "10" and GRAM_MODE_REG(3 downto 2) = "10"
-                            else
-                            '1'                                             when VWRn='0'   and VMEM_CSn = '0'  and GRAM_PAGE = "10" and GRAM_MODE_REG(3 downto 2) = "11"
+                            '1'                                             when VWRn = '0' and VMEM_CSn = '0'  and GRAM_PAGE_ENABLE = '1' and GRAM_MODE_REG(3 downto 2) = "11"
                             else
                             '0';
-    GWEN_G               <= '1'                                             when VWRn='0'   and VMEM_CSn = '0'  and GRAM_PAGE = "11" and GRAM_MODE_REG(3 downto 2) = "01"
+    GWEN_B               <= '1'                                             when VWRn='0'   and VMEM_CSn = '0'  and GRAM_PAGE_ENABLE = '1' and GRAM_MODE_REG(3 downto 2) = "10"
                             else
-                            '1'                                             when VWRn='0'   and VMEM_CSn = '0'  and GRAM_PAGE = "11" and GRAM_MODE_REG(3 downto 2) = "11"
+                            '1'                                             when VWRn='0'   and VMEM_CSn = '0'  and GRAM_PAGE_ENABLE = '1' and GRAM_MODE_REG(3 downto 2) = "11"
                             else
                             '0';
-    GRAM_VIDEO_DATA      <= GRAM_DO_R                                       when GRAM_MODE_REG(1 downto 0) = "00"
+    GWEN_G               <= '1'                                             when VWRn='0'   and VMEM_CSn = '0'  and GRAM_PAGE_ENABLE = '1' and GRAM_MODE_REG(3 downto 2) = "01"
                             else
-                            GRAM_DO_G                                       when GRAM_MODE_REG(1 downto 0) = "01"
+                            '1'                                             when VWRn='0'   and VMEM_CSn = '0'  and GRAM_PAGE_ENABLE = '1' and GRAM_MODE_REG(3 downto 2) = "11"
                             else
-                            GRAM_DO_B                                       when GRAM_MODE_REG(1 downto 0) = "10"
-                            else
-                            (others=>'0');
+                            '0';
     
     -- MZ80B/MZ2000 Graphics Option RAM.
     --
@@ -1982,35 +1971,48 @@ begin
     
     -- Output the VGA signals on the main clock edge, helps a bit with jitter.
     --
-    process(SYS_CLK)
-    begin
-        if rising_edge(SYS_CLK) then
-            if H_BLANKi='0' and V_BLANKi = '0' and ((DISPLAY_VGATE = '0' and MODE_MZ80B = '1') or MODE_MZ80B = '0') then
-                VGA_R             <= (others => SR_R_DATA(7));
-                VGA_G             <= (others => SR_G_DATA(7));
-                VGA_B             <= (others => SR_B_DATA(7));
-            else
-                VGA_R             <= (others => '0');
-                VGA_G             <= (others => '0');
-                VGA_B             <= (others => '0');
-            end if;
-            if H_POLARITY(0) = '0' then
-                VGA_HS            <= H_SYNC_ni;
-            else
-                VGA_HS            <= not H_SYNC_ni;
-            end if;
-            if V_POLARITY(0) = '0'  then
-                VGA_VS            <= V_SYNC_ni;
-            else
-                VGA_VS            <= not V_SYNC_ni;
-            end if;
-        end if;
-    end process;
+--    process(SYS_CLK)
+--    begin
+--        if rising_edge(SYS_CLK) then
+--            if H_BLANKi='0' and V_BLANKi = '0' and ((DISPLAY_VGATE = '0' and MODE_MZ80B = '1') or MODE_MZ80B = '0') then
+--                VGA_R             <= (others => SR_R_DATA(7));
+--                VGA_G             <= (others => SR_G_DATA(7));
+--                VGA_B             <= (others => SR_B_DATA(7));
+--            else
+--                VGA_R             <= (others => '0');
+--                VGA_G             <= (others => '0');
+--                VGA_B             <= (others => '0');
+--            end if;
+--            if H_POLARITY(0) = '0' then
+--                VGA_HS            <= H_SYNC_ni;
+--            else
+--                VGA_HS            <= not H_SYNC_ni;
+--            end if;
+--            if V_POLARITY(0) = '0'  then
+--                VGA_VS            <= V_SYNC_ni;
+--            else
+--                VGA_VS            <= not V_SYNC_ni;
+--            end if;
+--        end if;
+--    end process;
+
+    VGA_R             <= (others => SR_R_DATA(7)) when H_BLANKi='0' and V_BLANKi = '0' and ((DISPLAY_VGATE = '0' and MODE_MZ80B = '1') or MODE_MZ80B = '0')
+                         else (others => '0');
+    VGA_G             <= (others => SR_G_DATA(7)) when H_BLANKi='0' and V_BLANKi = '0' and ((DISPLAY_VGATE = '0' and MODE_MZ80B = '1') or MODE_MZ80B = '0')
+                         else (others => '0');
+    VGA_B             <= (others => SR_B_DATA(7)) when H_BLANKi='0' and V_BLANKi = '0' and ((DISPLAY_VGATE = '0' and MODE_MZ80B = '1') or MODE_MZ80B = '0')
+                         else (others => '0');
+    VGA_HS            <= H_SYNC_ni                when H_POLARITY(0) = '0'
+                         else
+                         not H_SYNC_ni;
+    VGA_VS            <= V_SYNC_ni                when V_POLARITY(0) = '0'
+                         else
+                         not V_SYNC_ni;
 
     -- Mainboard Video output circuitry. This is the emulation of the MB14298/MB14299 gate arrays. We inject the video (serialised data) and the sync/blanking signals into the MB14298 socket
     -- and these are combined on the mainboard to generate the internal monitor signals.
     --
-    VSRVIDEO_OUT      <= (SR_R_DATA(7) xor SR_B_DATA(7)) or SR_G_DATA(7)    when DISABLE_INT_DISPLAY = '0' -- Video out from 74LS165 on mainboard, pre-GATE.
+    VSRVIDEO_OUT      <= (SR_R_DATA(7) xor SR_B_DATA(7)) or (SR_R_DATA(7) xor SR_G_DATA(7)) or (SR_B_DATA(7) xor SR_G_DATA(7)) when DISABLE_INT_DISPLAY = '0' -- Video out from 74LS165 on mainboard, pre-GATE.
                          else '0';
     VHBLNK_OUTn       <= not H_BLANKi  when DISABLE_INT_DISPLAY = '0'                                      -- Horizontal blanking.
                          else H_I_BLANKi;

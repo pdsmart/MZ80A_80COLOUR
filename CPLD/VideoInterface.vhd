@@ -123,7 +123,7 @@ architecture rtl of VideoInterface is
     signal INBUF                  :       std_logic_vector(11 downto 0);
     signal RCV_CYCLE              :       integer range 0 to 1;
     signal INCOUNT                :       integer range 0 to 3;
-    signal VA                     :       std_logic_vector(13 downto 0);
+    signal VA                     :       std_logic_vector(14 downto 0);
     signal CS_LAST_LEVEL          :       std_logic_vector(1 downto 0);                  -- Register to store the previous chip select level for edge detection.
     signal CS_IO_FXX_n            :       std_logic;                                     -- Chip select for block F0:FF
     signal CS_CPLD_CTRL_n         :       std_logic;                                     -- Chip select for the CPLD Control Register at 0xF0
@@ -152,7 +152,7 @@ begin
     -- or converter. Given the pricing of the MAX7000 series chips it is easier and cheaper to use a CPLD to perform the voltage translation as they are 5V tolerant
     -- and the mainboard accepts 3.3V output voltages.
     --
-    VADDR                         <= VA;
+    VADDR                         <= VA(13 downto 0);
 
     -- Data bus is muxed between the Z80 data bus and VRAMD which is the gated data bus after the video buffers.
     -- The write signal WRn from the motherboard is actually a gated Write for the Video and Attribute RAM. The logic has been updated in the tranZPUter to
@@ -249,9 +249,7 @@ begin
         else
             OUTCLK <= '0';
         end if;
-
     end process;
-
 
     -- Signals originating on the mainboard or the FPGA are brougnt into the clock domain of the CPLD, which is also the clock domain of the mainboard
     -- as the CPLD provides the mainboard clocks.
