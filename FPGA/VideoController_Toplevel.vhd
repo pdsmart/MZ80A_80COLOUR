@@ -42,17 +42,15 @@ entity VideoControllerFPGA is
 
         -- V[name] = Voltage translated signals which mirror the mainboard signals but at a lower voltage.
         -- Addres Bus
-        VADDR                     : in    std_logic_vector(13 downto 0);                 -- Z80 Address bus, multiplexed with video address.
+        VADDR                     : in    std_logic_vector(15 downto 0);                 -- Z80 Address bus, multiplexed with video address.
 
         -- Data Bus
         VDATA                     : inout std_logic_vector(7 downto 0);                  -- Z80 Data bus from mainboard Colour Card CD connector..
 
         -- Control signals.
-        VMEM_CSn                  : in    std_logic;                                     -- Extended memory select to FPGA.
-        VIORQn                    : in    std_logic;                                     -- IORQn to FPGA.
-        VRDn                      : in    std_logic;                                     -- RDn to FPGA.
-        VWRn                      : in    std_logic;                                     -- WRn to FPGA.
-        VRESETn                   : in    std_logic;                                     -- Reset to FPGA.
+        VZ80_IORQn                : in    std_logic;                                     -- IORQn to FPGA.
+        VZ80_RDn                  : in    std_logic;                                     -- RDn to FPGA.
+        VZ80_WRn                  : in    std_logic;                                     -- WRn to FPGA.
 
         -- VGA signals.
         VGA_R                     : out   std_logic_vector(3 downto 0);                  -- 16 level Red output.
@@ -68,8 +66,10 @@ entity VideoControllerFPGA is
         VHBLNK_OUTn               : out   std_logic;                                     -- Horizontal blanking.
         VHSY_OUT                  : out   std_logic;                                     -- Horizontal Sync.
         VSYNCH_OUT                : out   std_logic;                                     -- Veritcal Sync.
-        VVBLNK_OUTn               : out   std_logic                                      -- Vertical blanking.
+        VVBLNK_OUTn               : out   std_logic;                                     -- Vertical blanking.
 
+        -- Reset.
+        VRESETn                   : in    std_logic                                      -- Reset to FPGA.
         -- Reserved.
       --TBA                       : in    std_logic_vector(4 downto 0)                   -- Reserved signal paths to the CPLD.
     );
@@ -147,11 +147,9 @@ begin
         VDATA                    => VDATA,                                               -- Z80 Data bus from mainboard Colour Card CD connector..
 
         -- Control signals.
-        VMEM_CSn                 => VMEM_CSn,                                            -- Extended memory select to FPGA.
-        VIORQn                   => VIORQn,                                              -- IORQn to FPGA.
-        VRDn                     => VRDn,                                                -- RDn to FPGA.
-        VWRn                     => VWRn,                                                -- WRn to FPGA.
-        VRESETn                  => RESETn,                                              -- Reset to FPGA.
+        VZ80_IORQn               => VZ80_IORQn,                                          -- IORQn to FPGA.
+        VZ80_RDn                 => VZ80_RDn,                                            -- RDn to FPGA.
+        VZ80_WRn                 => VZ80_WRn,                                            -- WRn to FPGA.
 
         -- VGA signals.
         VGA_R                    => VGA_R,                                               -- 16 level Red output.
@@ -167,7 +165,10 @@ begin
         VHBLNK_OUTn              => VHBLNK_OUTn,                                         -- Horizontal blanking.
         VHSY_OUT                 => VHSY_OUT,                                            -- Horizontal Sync.
         VSYNCH_OUT               => VSYNCH_OUT,                                          -- Veritcal Sync.
-        VVBLNK_OUTn              => VVBLNK_OUTn                                          -- Vertical blanking.
+        VVBLNK_OUTn              => VVBLNK_OUTn,                                         -- Vertical blanking.
+
+        -- Reset.
+        VRESETn                  => RESETn                                               -- Reset to FPGA.
 
         -- Reserved.
       --TBA                      => TBA                                                  -- Reserved signals.        

@@ -41,15 +41,14 @@ entity VideoInterfaceCPLD is
         CLOCK_50                  : in    std_logic;                                     -- 50MHz base clock for system board, video timing and gate clocking.
 
         -- Z80 Address and Data. Address is muxed with video addressing, not direct.
-     -- A                         : in    std_logic_vector(10 downto 0);                 -- Z80 Address bus, multiplexed with video address. 13..11 come from the tranZPUter board.
+        A                         : in    std_logic_vector(10 downto 0);                 -- Z80 Address bus, multiplexed with video address. 13..11 come from the tranZPUter board.
         D                         : inout std_logic_vector(7 downto 0);                  -- Z80 Data bus, from the Colour Card CN! connector.
 
         -- Z80 Control signals.
-     -- WRn                       : in    std_logic;                                     -- Z80 Write signal from the Colour Card CN! connector.
+        WRn                       : in    std_logic;                                     -- Z80 Write signal from the Colour Card CN! connector.
         RDn                       : in    std_logic;                                     -- Z80 Read signal from the Colour Card CN! connector.
         RESETn                    : in    std_logic;                                     -- Z80 RESET signal from the tranZPUter board.
         MB_RESETn                 : in    std_logic;                                     -- Z80 RESET signal from the tranZPUter board.
-     -- IORQn                     : in    std_logic;                                     -- Z80 IORQ signal from the tranZPUter board.
 
         -- Video and Mainboard signals.
         SRVIDEO_OUT               : out   std_logic;                                     -- Shift Register 74LS165 Video Output onto mainboard.
@@ -68,21 +67,20 @@ entity VideoInterfaceCPLD is
         VRAM_CS_INn               : in    std_logic;                                     -- Chip Select for access to the Video RAM from the mainboard IC15 socket.
         GTn                       : in    std_logic;                                     -- GATE signal from the Colour Card CN! connector.
         CSn                       : in    std_logic;                                     -- Chip Select for the Video Attribute RAM from the Colour Card CN! connector.
-     -- MEM_CSn                   : in    std_logic;                                     -- Extended memory select for region 0xE000 - 0xFFFF from the tranZPUter board.
         OUTCLK                    : out   std_logic;                                     -- CPU signal serialiser clock.
         INDATA                    : in    std_logic_vector(3 downto 0);                  -- Incoming serialised CPU signals.
 
         -- V[name] = Voltage translated signals which mirror the mainboard signals but at a lower voltage.
-        VADDR                     : out   std_logic_vector(13 downto 0);                 -- Z80 Address bus, multiplexed with video address.
+        VADDR                     : out   std_logic_vector(15 downto 0);                 -- Z80 Address bus, multiplexed with video address.
         VDATA                     : inout std_logic_vector(7 downto 0);                  -- Z80 Data bus from mainboard Colour Card CD connector..
         VRAMD                     : inout std_logic_vector(7 downto 0);                  -- Z80 Data bus from the VRAM chip, gated according to state signals.
-        VMEM_CSn                  : out   std_logic;                                     -- Extended memory select to FPGA.
+      --VMEM_CSn                  : out   std_logic;                                     -- Extended memory select to FPGA.
+        VZ80_IORQn                : out   std_logic;                                     -- IORQn to FPGA.
+        VZ80_RDn                  : out   std_logic;                                     -- RDn to FPGA.
+        VZ80_WRn                  : out   std_logic;                                     -- WRn to FPGA.
         VVRAM_CS_INn              : out   std_logic;                                     -- Chip Select for access to the Video RAM from the mainboard IC15 socket.
-        VIORQn                    : out   std_logic;                                     -- IORQn to FPGA.
-        VRDn                      : out   std_logic;                                     -- RDn to FPGA.
         VCSn                      : out   std_logic;                                     -- Video RAM Attribute Chip Select (CSn) to FPGA.
         VGTn                      : out   std_logic;                                     -- Video Gate (GTn) 
-        VWRn                      : out   std_logic;                                     -- WRn to FPGA.
         VRESETn                   : out   std_logic;                                     -- Reset to FPGA.
         --
         VSRVIDEO_OUT              : in    std_logic;                                     -- Video out from 74LS165 on mainboard, pre-GATE.
@@ -119,11 +117,11 @@ begin
         CLOCK_50        => CLOCK_50,                                                     -- 50MHz base clock for system board, video timing and gate clocking.
 
         -- Z80 Address and Data. Address is muxed with video addressing, not direct.
-     -- A               => A,                                                            -- Z80 Address bus, multiplexed with video address. 13..11 come from the tranZPUter board.
+        A               => A,                                                            -- Z80 Address bus, multiplexed with video address. 13..11 come from the tranZPUter board.
         D               => D,                                                            -- Z80 Data bus, from the Colour Card CN! connector.
 
         -- Z80 Control signals.
-     -- WRn             => WRn,                                                          -- Z80 Write signal from the Colour Card CN! connector.
+        WRn             => WRn,                                                          -- Z80 Write signal from the Colour Card CN! connector.
         RDn             => RDn,                                                          -- Z80 Read signal from the Colour Card CN! connector.
         RESETn          => CPLDRESETn,                                                   -- Z80 RESET signal from the tranZPUter board.
      -- IORQn           => IORQn,                                                        -- Z80 IORQ signal from the tranZPUter board.
@@ -153,13 +151,13 @@ begin
         VADDR           => VADDR,                                                        -- Z80 Address bus, multiplexed with video address.
         VDATA           => VDATA,                                                        -- Z80 Data bus from mainboard Colour Card CD connector..
         VRAMD           => VRAMD,                                                        -- Z80 Data bus from the VRAM chip, gated according to state signals.
-        VMEM_CSn        => VMEM_CSn,                                                     -- Extended memory select to FPGA.
+      --VMEM_CSn        => VMEM_CSn,                                                     -- Extended memory select to FPGA.
+        VZ80_IORQn      => VZ80_IORQn,                                                   -- IORQn to FPGA.
+        VZ80_RDn        => VZ80_RDn,                                                     -- RDn to FPGA.
+        VZ80_WRn        => VZ80_WRn,                                                     -- WRn to FPGA.
         VVRAM_CS_INn    => VVRAM_CS_INn,                                                 -- Chip Select for access to the Video RAM from the mainboard IC15 socket.
-        VIORQn          => VIORQn,                                                       -- IORQn to FPGA.
-        VRDn            => VRDn,                                                         -- RDn to FPGA.
         VCSn            => VCSn,                                                         -- Video RAM Attribute Chip Select (CSn) to FPGA.
         VGTn            => VGTn,                                                         -- Video Gate (GTn) 
-        VWRn            => VWRn,                                                         -- WRn to FPGA.
 
         VSRVIDEO_OUT    => VSRVIDEO_OUT,                                                 -- Video out from 74LS165 on mainboard, pre-GATE.
         VHBLNK_OUTn     => VHBLNK_OUTn,                                                  -- Horizontal blanking.

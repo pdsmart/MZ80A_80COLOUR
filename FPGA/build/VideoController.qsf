@@ -86,6 +86,8 @@ set_location_assignment PIN_129 -to CLOCK_50
 
 # Video Interface Address Bus
 # ===========================
+set_location_assignment PIN_80 -to VADDR[15]
+set_location_assignment PIN_83 -to VADDR[14]
 set_location_assignment PIN_120 -to VADDR[13]
 set_location_assignment PIN_121 -to VADDR[12]
 set_location_assignment PIN_125 -to VADDR[11]
@@ -100,6 +102,8 @@ set_location_assignment PIN_143 -to VADDR[3]
 set_location_assignment PIN_144 -to VADDR[2]
 set_location_assignment PIN_7 -to VADDR[1]
 set_location_assignment PIN_4 -to VADDR[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VADDR[15]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VADDR[14]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VADDR[13]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VADDR[12]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VADDR[11]
@@ -146,20 +150,20 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to VDATA[0
 # ======================
 #set_location_assignment PIN_113 -to VCSn
 #set_location_assignment PIN_112 -to VGTn
-set_location_assignment PIN_115 -to VIORQn
-set_location_assignment PIN_119 -to VMEM_CSn
-set_location_assignment PIN_114 -to VRDn
+set_location_assignment PIN_115 -to VZ80_IORQn
+#set_location_assignment PIN_119 -to VMEM_CSn
+set_location_assignment PIN_114 -to VZ80_RDn
 set_location_assignment PIN_110 -to VRESETn
 #set_location_assignment PIN_28 -to VVRAM_CS_INn
-set_location_assignment PIN_111 -to VWRn
+set_location_assignment PIN_111 -to VZ80_WRn
 #set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VCSn
 #set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VGTn
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VIORQn
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VMEM_CSn
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VRDn
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VZ80_IORQn
+#set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VMEM_CSn
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VZ80_RDn
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VRESETn
 #set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VVRAM_CS_INn
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VWRn
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VZ80_WRn
 
 # VGA/RGB signals.
 # ================
@@ -230,23 +234,27 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to VHSY_OU
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to VSYNCH_OUT
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to VVBLNK_OUTn
 
+
+# Mainboard video signals on the CN1 connector passed to the FPGA.
+# ================================================================
+set_location_assignment PIN_71 -to VMB_HBLNKn
+set_location_assignment PIN_72 -to VMB_LOAD
+set_location_assignment PIN_76 -to VMB_SYNCH
+set_location_assignment PIN_77 -to VMB_V_HBLNKn
+set_location_assignment PIN_79 -to VMB_VIDEO
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VMB_HBLNKn
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VMB_LOAD
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VMB_SYNCH
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VMB_V_HBLNKn
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VMB_VIDEO
+
 # Reserved.
 # =========
-#set_location_assignment PIN_71 -to TBA[9]
-#set_location_assignment PIN_72 -to TBA[8]
-#set_location_assignment PIN_76 -to TBA[7]
-#set_location_assignment PIN_77 -to TBA[6]
-#set_location_assignment PIN_79 -to TBA[5]
 #set_location_assignment PIN_80 -to TBA[4]
 #set_location_assignment PIN_83 -to TBA[3]
 #set_location_assignment PIN_85 -to TBA[2]
 #set_location_assignment PIN_86 -to TBA[1]
 #set_location_assignment PIN_87 -to TBA[0]
-#set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to TBA[9]
-#set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to TBA[8]
-#set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to TBA[7]
-#set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to TBA[6]
-#set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to TBA[5]
 #set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to TBA[4]
 #set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to TBA[3]
 #set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to TBA[2]
@@ -265,6 +273,9 @@ set_global_assignment -name VHDL_FILE ../VideoController_pkg.vhd
 set_global_assignment -name VHDL_FILE ../VideoController.vhd
 set_global_assignment -name VHDL_FILE ../devices/RAM/dpram.vhd
 set_global_assignment -name SDC_FILE VideoController_constraints.sdc
+
+
+
 
 
 

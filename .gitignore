@@ -62,3 +62,4 @@ CPLD/VideoInterface.vhd.16mhz
 CPLD/VideoInterface_Toplevel.vhd.16mhz
 FPGA/build/core
 FPGA/vidsav
+CPLD/build/VideoInterface.qws

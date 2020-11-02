@@ -2,5 +2,38 @@
 { "" "" "" "Macrocell buffer inserted after node \"Z80_BUSACKn\"" {  } {  } 0 163076 "" 0 0 "Quartus II" 0 -1 0 ""}
 { "" "" "" "Found combinational loop of 5 nodes" {  } {  } 0 332125 "" 0 0 "Quartus II" 0 -1 0 ""}
 { "" "" "" "TimeQuest Timing Analyzer does not support the analysis of latches as synchronous elements for the currently selected device family." {  } {  } 0 335095 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(127): object \"MODE_CPLD_MZ80K\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(157): object \"MODE_VIDEO_MZ80C\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(156): object \"MODE_VIDEO_MZ80K\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(154): object \"MODE_VIDEO_MZ800\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(153): object \"MODE_VIDEO_MZ700\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(158): object \"MODE_VIDEO_MZ1200\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(136): object \"MODE_CPLD_MB_VIDEOn\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(152): object \"MODE_VIDEO_MZ80A\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(134): object \"MODE_CPLD_MZ2000\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(133): object \"MODE_CPLD_MZ80B\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(132): object \"MODE_CPLD_MZ800\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(131): object \"MODE_CPLD_MZ700\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(130): object \"MODE_CPLD_MZ80A\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(129): object \"MODE_CPLD_MZ1200\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(135): object \"MODE_CPLD_SWITCH\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(128): object \"MODE_CPLD_MZ80C\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(160): object \"GRAM_PAGE_ENABLE\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(159): object \"MODE_VIDEO_MZ2000\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(161): object \"MZ80B_VRAM_HI_ADDR\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(162): object \"MZ80B_VRAM_LO_ADDR\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(150): object \"MODE_VIDEO_MZ80A\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(151): object \"MODE_VIDEO_MZ700\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(152): object \"MODE_VIDEO_MZ800\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(154): object \"MODE_VIDEO_MZ80K\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(155): object \"MODE_VIDEO_MZ80C\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(156): object \"MODE_VIDEO_MZ1200\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(154): object \"MODE_VIDEO_MZ80A\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(155): object \"MODE_VIDEO_MZ700\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(156): object \"MODE_VIDEO_MZ800\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(158): object \"MODE_VIDEO_MZ80K\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(159): object \"MODE_VIDEO_MZ80C\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(160): object \"MODE_VIDEO_MZ1200\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "Verilog HDL or VHDL warning at VideoInterface.vhd(161): object \"MODE_VIDEO_MZ2000\" assigned a value but never read" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
 { "" "" "" "*" {  } {  } 0 10631 "" 0 0 "Quartus II" 0 -1 0 ""}
 { "" "" "" "*" {  } {  } 0 163076 "" 0 0 "Quartus II" 0 -1 0 ""}

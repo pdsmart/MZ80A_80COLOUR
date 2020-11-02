@@ -35,6 +35,72 @@ use ieee.numeric_std.all;
 use ieee.math_real.all;
 
 package VideoController_pkg is
+
+    ------------------------------------------------------------ 
+    -- Constants
+    ------------------------------------------------------------ 
+
+    -- Potential logic state constants.
+    constant YES                      : std_logic := '1';
+    constant NO                       : std_logic := '0';
+    constant HI                       : std_logic := '1';
+    constant LO                       : std_logic := '0';
+    constant ONE                      : std_logic := '1';
+    constant ZERO                     : std_logic := '0';
+    constant HIZ                      : std_logic := 'Z';
+
+    -- Target hardware modes.
+    constant MODE_MZ80K               : integer   := 0;
+    constant MODE_MZ80C               : integer   := 1;
+    constant MODE_MZ1200              : integer   := 2;
+    constant MODE_MZ80A               : integer   := 3;
+    constant MODE_MZ700               : integer   := 4;
+    constant MODE_MZ800               : integer   := 5;
+    constant MODE_MZ80B               : integer   := 6;
+    constant MODE_MZ2000              : integer   := 7;
+
+    -- Memory management modes.
+    constant TZMM_ORIG                : integer   := 00;                     -- Original Sharp mode, no tranZPUter features are selected except the I/O control registers (default: 0x60-063).
+    constant TZMM_BOOT                : integer   := 01;                     -- Original mode but E800-EFFF is mapped to tranZPUter RAM so TZFS can be booted.
+    constant TZMM_TZFS                : integer   := 02;                     -- TZFS main memory configuration. all memory is in tranZPUter RAM, E800-FFFF is used by TZFS, SA1510 is at 0000-1000 and RAM is 1000-CFFF, 64K Block 0 selected.
+    constant TZMM_TZFS2               : integer   := 03;                     -- TZFS main memory configuration. all memory is in tranZPUter RAM, E800-EFFF is used by TZFS, SA1510 is at 0000-1000 and RAM is 1000-CFFF, 64K Block 0 selected, F000-FFFF is in 64K Block 1.
+    constant TZMM_TZFS3               : integer   := 04;                     -- TZFS main memory configuration. all memory is in tranZPUter RAM, E800-EFFF is used by TZFS, SA1510 is at 0000-1000 and RAM is 1000-CFFF, 64K Block 0 selected, F000-FFFF is in 64K Block 2.
+    constant TZMM_TZFS4               : integer   := 05;                     -- TZFS main memory configuration. all memory is in tranZPUter RAM, E800-EFFF is used by TZFS, SA1510 is at 0000-1000 and RAM is 1000-CFFF, 64K Block 0 selected, F000-FFFF is in 64K Block 3.
+    constant TZMM_CPM                 : integer   := 06;                     -- CPM main memory configuration, all memory on the tranZPUter board, 64K block 4 selected. Special case for F3C0:F3FF & F7C0:F7FF (floppy disk paging vectors) which resides on the mainboard.
+    constant TZMM_CPM2                : integer   := 07;                     -- CPM main memory configuration, F000-FFFF are on the tranZPUter board in block 4, 0040-CFFF and E800-EFFF are in block 5, mainboard for D000-DFFF (video), E000-E800 (Memory control) selected.
+                                                                             -- Special case for 0000:003F (interrupt vectors) which resides in block 4, F3FE:F3FF & F7FE:F7FF (floppy disk paging vectors) which resides on the mainboard.
+    constant TZMM_COMPAT              : integer   := 08;                     -- Compatiblilty monitor mode, monitor ROM on mainboard, RAM on tranZPUter in Block 0 1000-CFFF.
+    constant TZMM_MZ700_0             : integer   := 10;                     -- MZ700 Mode - 0000:0FFF is on the tranZPUter board in block 6, 1000:CFFF is on the tranZPUter board in block 0, D000:FFFF is on the mainboard.
+    constant TZMM_MZ700_1             : integer   := 11;                     -- MZ700 Mode - 0000:0FFF is on the tranZPUter board in block 0, 1000:CFFF is on the tranZPUter board in block 0, D000:FFFF is on the tranZPUter in block 6.
+    constant TZMM_MZ700_2             : integer   := 12;                     -- MZ700 Mode - 0000:0FFF is on the tranZPUter board in block 6, 1000:CFFF is on the tranZPUter board in block 0, D000:FFFF is on the tranZPUter in block 6.
+    constant TZMM_MZ700_3             : integer   := 13;                     -- MZ700 Mode - 0000:0FFF is on the tranZPUter board in block 0, 1000:CFFF is on the tranZPUter board in block 0, D000:FFFF is inaccessible.
+    constant TZMM_MZ700_4             : integer   := 14;                     -- MZ700 Mode - 0000:0FFF is on the tranZPUter board in block 6, 1000:CFFF is on the tranZPUter board in block 0, D000:FFFF is inaccessible.
+    constant TZMM_TZPU0               : integer   := 24;                     -- Everything is in tranZPUter domain, no access to underlying Sharp mainboard unless memory management mode is switched. tranZPUter RAM 64K block 0 is selected.
+    constant TZMM_TZPU1               : integer   := 25;                     -- Everything is in tranZPUter domain, no access to underlying Sharp mainboard unless memory management mode is switched. tranZPUter RAM 64K block 1 is selected.
+    constant TZMM_TZPU2               : integer   := 26;                     -- Everything is in tranZPUter domain, no access to underlying Sharp mainboard unless memory management mode is switched. tranZPUter RAM 64K block 2 is selected.
+    constant TZMM_TZPU3               : integer   := 27;                     -- Everything is in tranZPUter domain, no access to underlying Sharp mainboard unless memory management mode is switched. tranZPUter RAM 64K block 3 is selected.
+    constant TZMM_TZPU4               : integer   := 28;                     -- Everything is in tranZPUter domain, no access to underlying Sharp mainboard unless memory management mode is switched. tranZPUter RAM 64K block 4 is selected.
+    constant TZMM_TZPU5               : integer   := 29;                     -- Everything is in tranZPUter domain, no access to underlying Sharp mainboard unless memory management mode is switched. tranZPUter RAM 64K block 5 is selected.
+    constant TZMM_TZPU6               : integer   := 30;                     -- Everything is in tranZPUter domain, no access to underlying Sharp mainboard unless memory management mode is switched. tranZPUter RAM 64K block 6 is selected.
+    constant TZMM_TZPU7               : integer   := 31;                     -- Everything is in tranZPUter domain, no access to underlying Sharp mainboard unless memory management mode is switched. tranZPUter RAM 64K block 7 is selected.
+
+
+    ------------------------------------------------------------ 
+    -- Configurable parameters.
+    ------------------------------------------------------------ 
+    -- Target hardware.
+    constant CPLD_HOST_HW             : integer  := MODE_MZ80A;
+
+    -- Target video hardware.
+    constant CPLD_HAS_FPGA_VIDEO      : std_logic := '1';
+
+    -- Version of hdl.
+    constant CPLD_VERSION             : integer   := 1;
+
+    -- Clock source for the secondary clock. If a K64F is installed the enable it otherwise use the onboard oscillator.
+    --
+    constant USE_K64F_CTL_CLOCK       : integer   := 1;
+
     ------------------------------------------------------------ 
     -- Function prototypes
     ------------------------------------------------------------ 
@@ -55,19 +121,8 @@ package VideoController_pkg is
     --
     function to_std_logic(i : in integer) return std_logic;
 
-    ------------------------------------------------------------ 
-    -- Constants
-    ------------------------------------------------------------ 
-
-    -- Potential logic state constants.
-    constant YES                      : std_logic := '1';
-    constant NO                       : std_logic := '0';
-    constant HI                       : std_logic := '1';
-    constant LO                       : std_logic := '0';
-    constant ONE                      : std_logic := '1';
-    constant ZERO                     : std_logic := '0';
-    constant HIZ                      : std_logic := 'Z';
-
+    -- Function to return the value of a bit as an integer for array indexing etc.
+    function bit_to_integer( s : std_logic ) return natural;     
 
     ------------------------------------------------------------ 
     -- Records
@@ -142,4 +197,13 @@ package body VideoController_pkg is
       return '1';
     end function;
 
+    -- Function to return the value of a bit as an integer for array indexing etc.
+    function bit_to_integer( s : std_logic ) return natural is
+    begin
+        if s = '1' then
+            return 1;
+        else
+            return 0;
+        end if;
+    end function;
 end package body;
