@@ -79,6 +79,7 @@ entity VideoInterfaceCPLD is
         VZ80_RDn                  : out   std_logic;                                     -- RDn to FPGA.
         VZ80_WRn                  : out   std_logic;                                     -- WRn to FPGA.
         VVRAM_CS_INn              : out   std_logic;                                     -- Chip Select for access to the Video RAM from the mainboard IC15 socket.
+        VWAITn                    : in    std_logic;                                     -- WAIT signal from FPGA asserted during active frame display period.
         VCSn                      : out   std_logic;                                     -- Video RAM Attribute Chip Select (CSn) to FPGA.
         VGTn                      : out   std_logic;                                     -- Video Gate (GTn) 
         VRESETn                   : out   std_logic;                                     -- Reset to FPGA.
@@ -96,7 +97,7 @@ entity VideoInterfaceCPLD is
         VMB_LOAD                  : out   std_logic                                      -- shift register load signal from the Colour Card CN! connector.
 
         -- Reserved.
-      --TBA                       : in    std_logic_vector(4 downto 0)                   -- Reserved signals.
+      --TBA                       : in    std_logic_vector(1 downto 0)                   -- Reserved signals.
     );
 END entity;
 
@@ -156,6 +157,7 @@ begin
         VZ80_RDn        => VZ80_RDn,                                                     -- RDn to FPGA.
         VZ80_WRn        => VZ80_WRn,                                                     -- WRn to FPGA.
         VVRAM_CS_INn    => VVRAM_CS_INn,                                                 -- Chip Select for access to the Video RAM from the mainboard IC15 socket.
+        VWAITn          => VWAITn,                                                       -- WAIT signal from FPGA asserted during active frame display period.
         VCSn            => VCSn,                                                         -- Video RAM Attribute Chip Select (CSn) to FPGA.
         VGTn            => VGTn,                                                         -- Video Gate (GTn) 
 

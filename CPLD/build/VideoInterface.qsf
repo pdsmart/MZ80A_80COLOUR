@@ -190,6 +190,7 @@ set_location_assignment PIN_46 -to VCSn
 set_location_assignment PIN_47 -to VGTn
 set_location_assignment PIN_44 -to VZ80_IORQn
 #set_location_assignment PIN_43 -to VMEM_CSn
+set_location_assignment PIN_67 -to VWAITn
 set_location_assignment PIN_45 -to VZ80_RDn
 set_location_assignment PIN_49 -to VRESETn
 set_location_assignment PIN_27 -to VVRAM_CS_INn
@@ -197,7 +198,6 @@ set_location_assignment PIN_48 -to VZ80_WRn
 
 # Reserved.
 # =========
-#set_location_assignment PIN_67 -to TBA[2]
 #set_location_assignment PIN_66 -to TBA[1]
 #set_location_assignment PIN_65 -to TBA[0]
 

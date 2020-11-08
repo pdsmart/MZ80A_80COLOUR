@@ -79,6 +79,7 @@ entity VideoInterface is
         VRAMD                     : inout std_logic_vector(7 downto 0);                  -- Z80 Data bus from the VRAM chip, gated according to state signals.
       --VMEM_CSn                  : out   std_logic;                                     -- Extended memory select to FPGA.
         VVRAM_CS_INn              : out   std_logic;                                     -- Chip Select for access to the Video RAM from the mainboard IC15 socket.
+        VWAITn                    : in    std_logic;                                     -- WAIT signal from FPGA asserted during active frame display period.
         VZ80_IORQn                : out   std_logic;                                     -- IORQn to FPGA.
         VZ80_RDn                  : out   std_logic;                                     -- Z80_RDn from tranZPUter to FPGA.
         VCSn                      : out   std_logic;                                     -- Video RAM Attribute Chip Select (CSn) to FPGA.
@@ -98,7 +99,7 @@ entity VideoInterface is
         VMB_LOAD                  : out   std_logic                                      -- shift register load signal from the Colour Card CN! connector.
 
         -- Reserved.
-      --TBA                       : in    std_logic_vector(4 downto 0)                   -- Reserved signals.
+      --TBA                       : in    std_logic_vector(1 downto 0)                   -- Reserved signals.
     );
 end entity;
 
@@ -145,10 +146,10 @@ architecture rtl of VideoInterface is
     signal CS_FB_PAGEn            :       std_logic;                                     -- Chip Select for the Page select register.
     signal CS_80B_PIOn            :       std_logic;                                     -- Chip select for MZ80B PIO when in MZ80B mode.
     signal CS_LAST_LEVEL          :       std_logic_vector(4 downto 0);                  -- Register to store the previous chip select level for edge detection.
-    signal CS_DXXXn              :     std_logic;                            -- Chip select range for the VRAM/ARAM.
-    signal CS_EXXXn              :     std_logic;                            -- Chip select range for the memory mapped I/O.
-    signal CS_DVRAMn             :     std_logic;                            -- Chip select for the Video RAM.
-    signal CS_DARAMn             :     std_logic;                            -- Chip select for the Attribute RAM.
+    signal CS_DXXXn               :       std_logic;                                     -- Chip select range for the VRAM/ARAM.
+    signal CS_EXXXn               :       std_logic;                                     -- Chip select range for the memory mapped I/O.
+    signal CS_DVRAMn              :       std_logic;                                     -- Chip select for the Video RAM.
+    signal CS_DARAMn              :       std_logic;                                     -- Chip select for the Attribute RAM.
 
     -- Video module signal mirrors.
     signal MODE_VIDEO_MZ80A       :       std_logic := '1';                              -- The machine is running in MZ80A mode.
@@ -159,7 +160,7 @@ architecture rtl of VideoInterface is
     signal MODE_VIDEO_MZ80C       :       std_logic := '0';                              -- The machine is running in MZ80C mode.
     signal MODE_VIDEO_MZ1200      :       std_logic := '0';                              -- The machine is running in MZ1200 mode.
     signal MODE_VIDEO_MZ2000      :       std_logic := '0';                              -- The machine is running in MZ2000 mode.
-    signal GRAM_PAGE_ENABLE       :       std_logic_vector(1 downto 0);                  -- Graphics mode page enable.
+    signal GRAM_PAGE_ENABLE       :       std_logic;                                     -- Graphics mode page enable.
     signal GRAM_MZ80B_ENABLE      :       std_logic;                                     -- MZ80B Graphics memory enabled flag.
     signal MZ80B_VRAM_HI_ADDR     :       std_logic;                                     -- Video RAM located at D000:FFFF when high.
     signal MZ80B_VRAM_LO_ADDR     :       std_logic;                                     -- Video RAM located at 5000:7FFF when high.
@@ -441,7 +442,7 @@ begin
             MODE_VIDEO_MZ80C      <= '0';
             MODE_VIDEO_MZ1200     <= '0';
             MODE_VIDEO_MZ2000     <= '0';
-            GRAM_PAGE_ENABLE      <= "00";
+            GRAM_PAGE_ENABLE      <= '0';
             MZ80B_VRAM_HI_ADDR    <= '0';
             MZ80B_VRAM_LO_ADDR    <= '0';
             MODE_CPLD_SWITCH      <= '0';
@@ -519,9 +520,9 @@ begin
                 end case;
             end if;
 
-            -- memory page register. [1:0] switches in 1 16Kb page (3 pages) of graphics ram to C000 - FFFF. Bits [1:0] = page, 00 = off, 01 = Red, 10 = Green, 11 = Blue. This overrides all MZ700/MZ80B page switching functions. [7] 0 - normal, 1 - switches in CGROM for upload at D000:DFFF.
-            if CS_FB_PAGEn = '0' and CS_LAST_LEVEL(2) = '1' then
-                GRAM_PAGE_ENABLE          <= D(1 downto 0);
+            -- memory page register. [0] switches in 16Kb page (1 of 3 pages) of graphics ram to C000 - FFFF. Bits [0] = page, 0 = Off, 1 = Enabled. This overrides all MZ700/MZ80B page switching functions. [7] 0 - normal, 1 - switches in CGROM for upload at D000:DFFF.
+            if CS_FB_PAGEn = '0' and CS_LAST_LEVEL(2) = '1' and S_VIDEO_WRn = '0' then
+                GRAM_PAGE_ENABLE          <= D(0);
             end if;
 
             -- MZ80B Z80 PIO.
@@ -580,7 +581,7 @@ begin
                                      else '1';
     CS_DARAMn                     <= '0'                         when S_IORQn = '1'     and VA(15 downto 11) = "11011"
                                      else '1';
-    CS_EXXXn                      <= '0'                         when S_IORQn = '1'     and VA(15 downto 11) = "11100" and GRAM_PAGE_ENABLE = "00" and (MODE_VIDEO_MZ80B = '0' or (MODE_VIDEO_MZ80B = '1' and GRAM_MZ80B_ENABLE = '0')) -- Normal memory mapped I/O if Graphics Option not enabled.
+    CS_EXXXn                      <= '0'                         when S_IORQn = '1'     and VA(15 downto 11) = "11100" and GRAM_PAGE_ENABLE = '0' and (MODE_VIDEO_MZ80B = '0' or (MODE_VIDEO_MZ80B = '1' and GRAM_MZ80B_ENABLE = '0')) -- Normal memory mapped I/O if Graphics Option not enabled.
                                      else '1';
 
     --

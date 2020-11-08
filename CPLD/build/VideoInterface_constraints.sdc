@@ -183,6 +183,7 @@ set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {V
 set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VZ80_RDn}]
 set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VRESETn}]
 set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VVRAM_CS_INn}]
+set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VWAITn}]
 set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VZ80_WRn}]
 set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VMB_HBLNKn}]
 set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VMB_LOAD}]

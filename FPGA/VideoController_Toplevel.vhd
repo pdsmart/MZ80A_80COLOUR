@@ -51,6 +51,7 @@ entity VideoControllerFPGA is
         VZ80_IORQn                : in    std_logic;                                     -- IORQn to FPGA.
         VZ80_RDn                  : in    std_logic;                                     -- RDn to FPGA.
         VZ80_WRn                  : in    std_logic;                                     -- WRn to FPGA.
+        VWAITn                    : out   std_logic;                                     -- WAIT signal to CPU when accessing video RAM when busy.
 
         -- VGA signals.
         VGA_R                     : out   std_logic_vector(3 downto 0);                  -- 16 level Red output.
@@ -150,6 +151,7 @@ begin
         VZ80_IORQn               => VZ80_IORQn,                                          -- IORQn to FPGA.
         VZ80_RDn                 => VZ80_RDn,                                            -- RDn to FPGA.
         VZ80_WRn                 => VZ80_WRn,                                            -- WRn to FPGA.
+        VWAITn                   => VWAITn,                                              -- WAIT signal to CPU when accessing video RAM when busy.
 
         -- VGA signals.
         VGA_R                    => VGA_R,                                               -- 16 level Red output.

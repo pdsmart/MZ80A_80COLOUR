@@ -156,6 +156,7 @@ set_location_assignment PIN_114 -to VZ80_RDn
 set_location_assignment PIN_110 -to VRESETn
 #set_location_assignment PIN_28 -to VVRAM_CS_INn
 set_location_assignment PIN_111 -to VZ80_WRn
+set_location_assignment PIN_85 -to VWAITn
 #set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VCSn
 #set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VGTn
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VZ80_IORQn
@@ -164,6 +165,7 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VZ80_RDn
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VRESETn
 #set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VVRAM_CS_INn
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VZ80_WRn
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VWAITn
 
 # VGA/RGB signals.
 # ================
@@ -250,14 +252,8 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VMB_VIDEO
 
 # Reserved.
 # =========
-#set_location_assignment PIN_80 -to TBA[4]
-#set_location_assignment PIN_83 -to TBA[3]
-#set_location_assignment PIN_85 -to TBA[2]
 #set_location_assignment PIN_86 -to TBA[1]
 #set_location_assignment PIN_87 -to TBA[0]
-#set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to TBA[4]
-#set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to TBA[3]
-#set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to TBA[2]
 #set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to TBA[1]
 #set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to TBA[0]
 
@@ -273,6 +269,8 @@ set_global_assignment -name VHDL_FILE ../VideoController_pkg.vhd
 set_global_assignment -name VHDL_FILE ../VideoController.vhd
 set_global_assignment -name VHDL_FILE ../devices/RAM/dpram.vhd
 set_global_assignment -name SDC_FILE VideoController_constraints.sdc
+
+
 
 
 
