@@ -70,6 +70,7 @@ entity VideoController is
         VIDCLK_65MHZ              : in    std_logic;                                     -- 65MHz base clock for video timing and gate clocking.
         VIDCLK_25_175MHZ          : in    std_logic;                                     -- 25.175MHz base clock for video timing and gate clocking.
         VIDCLK_40MHZ              : in    std_logic;                                     -- 40MHz base clock for video timing and gate clocking.
+        VIDCLK_PSEUDO             : in    std_logic;                                     -- Clock to create pixel slicing to generate pseudo monochrome.
 
         -- V[name] = Voltage translated signals which mirror the mainboard signals but at a lower voltage.
         -- Address Bus
@@ -377,6 +378,8 @@ architecture rtl of VideoController is
     signal V_I_SYNC_END          :     unsigned(15 downto 0); 
     signal V_I_LINE_END          :     unsigned(15 downto 0); 
     signal DISABLE_INT_DISPLAY   :     std_logic; 
+    signal PSEUDOGREY_VIDEO      :     std_logic;                            -- Pseudo grey video stream.
+    signal PSEUDOGREY_CTR        :     integer range 0 to 7;                 -- Counter to create video signal sub divisions.
     --
     -- CG-ROM
     --
@@ -747,7 +750,7 @@ begin
 
                 -- Every time we reach the end of the visible display area we enable copying of the VRAM and GRAM into the
                 -- display framebuffer, ready for the next frame display. This starts to occur a fixed set of rows after 
-                -- they have been displayed, initially only during the hblank period of a row, but the during the full row
+                -- they have been displayed, initially only during the hblank period of a row, but during the full row
                 -- in the vblank period.
                 --
                 if V_COUNT = 0 then
@@ -2392,7 +2395,7 @@ begin
                              else
                              GRAM_DO_GII                                     when VZ80_RDn = '0'    and CS_GRAMn = '0'   and GRAM_OPT_WRITE = '1'                                            -- For MZ80B GRAM II memory read - lower 8K of blue framebuffer.
                              else
-                             V_BLANKi & H_BLANKi & VIDEO_MODE_REG(5 downto 0)when VZ80_RDn = '0'    and CS_FB_VMn = '0'
+                             VIDEO_MODE_REG(7 downto 0)                      when VZ80_RDn = '0'    and CS_FB_VMn = '0'
                              else
                              GRAM_MODE_REG                                   when VZ80_RDn = '0'    and CS_FB_CTLn = '0'
                              else
@@ -2402,7 +2405,7 @@ begin
                              else
                              GRAM_B_FILTER                                   when VZ80_RDn = '0'    and CS_FB_BLUEn = '0'
                              else
-                             PAGE_MODE_REG                                   when VZ80_RDn = '0'    and CS_FB_PAGEn = '0'
+                             PAGE_MODE_REG(7) & V_BLANKi & H_BLANKi & PAGE_MODE_REG(4 downto 0) when VZ80_RDn = '0'     and CS_FB_PAGEn = '0'
                              else
                              CGROM_DO                                        when VZ80_RDn = '0'    and CS_DXXXn = '0'   and CGROM_PAGE = '1'
                              else
@@ -2697,6 +2700,55 @@ begin
 --        end if;
 --    end process;
 
+    -- Pseudo greyscale monochrome generator.
+    -- The internal monitor only supports on/off pixels so representing colour or grey scale cannot be done. This process, based on the colour attribute, pulses the pixels, skipping some pulses depending on colour
+    -- to give the effect of grey scaling.
+    process(VIDCLK_PSEUDO, VRESETn)
+    begin
+        -- Ensure default values at reset.
+        if VRESETn='0' then
+            PSEUDOGREY_CTR        <= 0;
+            PSEUDOGREY_VIDEO      <= '0';
+
+        elsif rising_edge(VIDCLK_PSEUDO) then
+
+            -- Always reset the pulse every clock tick, so 1 pulse = 1/VIDCLK_PSEUDO wide.
+            --
+            PSEUDOGREY_VIDEO <= '0';
+
+            -- Rotate the counter, the value determines when a pulse is output according to the colour pixel being displayed.
+            PSEUDOGREY_CTR <= PSEUDOGREY_CTR + 1;
+
+            if SR_R_DATA(7) = '1' and SR_G_DATA(7) = '1' and SR_B_DATA(7) = '1'    then
+                PSEUDOGREY_VIDEO <= '1';
+
+            elsif SR_R_DATA(7) = '1' and SR_G_DATA(7) = '1' and SR_B_DATA(7) = '0' and (PSEUDOGREY_CTR = 1 or PSEUDOGREY_CTR = 2 or PSEUDOGREY_CTR = 4 or PSEUDOGREY_CTR = 5 or PSEUDOGREY_CTR = 6 or PSEUDOGREY_CTR = 7) then
+                PSEUDOGREY_VIDEO <= '1';
+
+            elsif SR_R_DATA(7) = '1' and SR_G_DATA(7) = '0' and SR_B_DATA(7) = '1'  and (PSEUDOGREY_CTR = 2 or PSEUDOGREY_CTR = 4 or PSEUDOGREY_CTR = 5 or PSEUDOGREY_CTR = 6 or PSEUDOGREY_CTR = 7) then
+                PSEUDOGREY_VIDEO <= '1';
+                
+            elsif SR_R_DATA(7) = '1' and SR_G_DATA(7) = '0' and SR_B_DATA(7) = '0'  and (PSEUDOGREY_CTR = 1 or PSEUDOGREY_CTR = 4 or PSEUDOGREY_CTR = 5 or PSEUDOGREY_CTR = 7) then
+                PSEUDOGREY_VIDEO <= '1';
+
+            elsif SR_R_DATA(7) = '0' and SR_G_DATA(7) = '1' and SR_B_DATA(7) = '1'  and (PSEUDOGREY_CTR = 2 or PSEUDOGREY_CTR = 4 or PSEUDOGREY_CTR = 6 ) then
+                PSEUDOGREY_VIDEO <= '1';
+
+            elsif SR_R_DATA(7) = '0' and SR_G_DATA(7) = '1' and SR_B_DATA(7) = '0'  and (PSEUDOGREY_CTR = 4 or PSEUDOGREY_CTR = 5) then
+                PSEUDOGREY_VIDEO <= '1';
+
+            elsif SR_R_DATA(7) = '0' and SR_G_DATA(7) = '0' and SR_B_DATA(7) = '1'  and (PSEUDOGREY_CTR = 4) then
+                PSEUDOGREY_VIDEO <= '1';
+            end if;
+
+            -- During blanking periods. clear the video stream and reset counter ready for next line to keep things consistent.
+            if H_BLANKi = '1' or V_BLANKi = '1' then
+                PSEUDOGREY_VIDEO <= '0';
+                PSEUDOGREY_CTR        <= 0;
+            end if;
+        end if;
+    end process;
+
 
     -- Set the mainboard video state, 0 = enabled, 1 = disabled.
     MODE_CPLD_MB_VIDEOn   <= CPLD_CFG_DATA(3);
@@ -2734,19 +2786,21 @@ begin
     -- Mainboard Video output circuitry. This is the emulation of the MB14298/MB14299 gate arrays. We inject the video (serialised data) and the sync/blanking signals into the MB14298 socket
     -- and these are combined on the mainboard to generate the internal monitor signals.
     --
-    VSRVIDEO_OUT          <= (SR_R_DATA(7) xor SR_B_DATA(7)) or (SR_R_DATA(7) xor SR_G_DATA(7)) or (SR_B_DATA(7) xor SR_G_DATA(7)) when DISABLE_INT_DISPLAY = '0' -- Video out from 74LS165 on mainboard, pre-GATE.
+    VSRVIDEO_OUT          <= SR_G_DATA(7)                                    when DISABLE_INT_DISPLAY = '0' and (MODE_VIDEO_MONO = '1' or MODE_VIDEO_MONO80 = '1')
+                             else
+                             PSEUDOGREY_VIDEO                                when DISABLE_INT_DISPLAY = '0' -- Video out from 74LS165 on mainboard, pre-GATE.
                              else '0';
-    VHBLNK_OUTn           <= not H_BLANKi  when DISABLE_INT_DISPLAY = '0'                                      -- Horizontal blanking.
+    VHBLNK_OUTn           <= not H_BLANKi                                    when DISABLE_INT_DISPLAY = '0'                                      -- Horizontal blanking.
                              else H_I_BLANKi;
-    VHSY_OUT              <= not H_SYNCni when DISABLE_INT_DISPLAY = '0'                                      -- Horizontal Sync.
+    VHSY_OUT              <= not H_SYNCni                                    when DISABLE_INT_DISPLAY = '0'                                      -- Horizontal Sync.
                              else H_I_SYNCni;
-    VSYNCH_OUT            <= not V_SYNCni when DISABLE_INT_DISPLAY = '0'                                      -- Veritcal Sync.
+    VSYNCH_OUT            <= not V_SYNCni                                    when DISABLE_INT_DISPLAY = '0'                                      -- Veritcal Sync.
                              else V_I_SYNCni;
-    VVBLNK_OUTn           <= not V_BLANKi  when DISABLE_INT_DISPLAY = '0'                                      -- Vertical blanking.
+    VVBLNK_OUTn           <= not V_BLANKi                                    when DISABLE_INT_DISPLAY = '0'                                      -- Vertical blanking.
                              else V_I_BLANKi;
 
     -- Composite video signal output. Composite video is formed in hardware by the combination of VGA R/G/B signals.
-    CSYNCn                <= not (H_SYNCni or V_SYNCni);
-    CSYNC                 <= H_SYNCni or V_SYNCni;
+    CSYNCn                <= not (H_SYNCni xor V_SYNCni);
+    CSYNC                 <= H_SYNCni xor V_SYNCni;
 
 end architecture rtl;

@@ -85,10 +85,12 @@ architecture rtl of VideoControllerFPGA is
     signal VIDCLK_25_175MHZ       :       std_logic;
     signal VIDCLK_40MHZ           :       std_logic;
     signal VIDCLK_65MHZ           :       std_logic;
+    signal VIDCLK_PSEUDO          :       std_logic;
     signal PLL_LOCKED             :       std_logic;
     signal PLL_LOCKED2            :       std_logic;
+    signal PLL_LOCKED3            :       std_logic;
     signal RESETn                 :       std_logic;
-    signal RESET_COUNTER          :       unsigned(1 downto 0);
+    signal RESET_COUNTER          :       unsigned(5 downto 0);
 begin
 
     -- Instantiate a PLL to generate the system clock and base video clocks.
@@ -97,7 +99,7 @@ begin
     port map
     (
          inclk0                  => CLOCK_50,
-         areset                  => not VRESETn,
+         areset                  => '0',
          c0                      => SYS_CLK,
          c1                      => IF_CLK,
          c2                      => VIDCLK_8MHZ,
@@ -115,6 +117,16 @@ begin
          c0                      => VIDCLK_65MHZ,
          c1                      => VIDCLK_25_175MHZ,
          locked                  => PLL_LOCKED2
+    );
+
+    -- Instantiate a 3rd PLL to generate clock for pseudo monochrome generation on internal monitor.
+    VCPLL3 : entity work.Video_Clock_III
+    port map
+    (
+         inclk0                  => CLOCK_50,
+         areset                  => not VRESETn,
+         c0                      => VIDCLK_PSEUDO,
+         locked                  => PLL_LOCKED3
     );
 
     -- Add the Serial Flash Loader megafunction to enable in-situ programming of the EPCS16 configuration memory.
@@ -139,6 +151,7 @@ begin
         VIDCLK_65MHZ             => VIDCLK_65MHZ,                                        -- 65MHz base clock for video timing and gate clocking.
         VIDCLK_25_175MHZ         => VIDCLK_25_175MHZ,                                    -- 25.175MHz base clock for video timing and gate clocking.
         VIDCLK_40MHZ             => VIDCLK_40MHZ,                                        -- 40MHz base clock for video timing and gate clocking.
+        VIDCLK_PSEUDO            => VIDCLK_PSEUDO,                                       -- Clock to create pixel slicing to generate pseudo monochrome.
 
         -- V[name] = Voltage translated signals which mirror the mainboard signals but at a lower voltage.
         -- Addres Bus
@@ -179,12 +192,12 @@ begin
     -- Process to reset the FPGA based on the external RESET trigger, PLL's being locked
     -- and a counter to set minimum width.
     --
-    FPGARESET: process(VRESETn, CLOCK_50, PLL_LOCKED, PLL_LOCKED2)
+    FPGARESET: process(VRESETn, CLOCK_50, PLL_LOCKED, PLL_LOCKED2, PLL_LOCKED3)
     begin
         if VRESETn = '0' then
             RESET_COUNTER        <= (others => '1');
             RESETn               <= '0';
-        elsif PLL_LOCKED = '1' and PLL_LOCKED2 = '1' then
+        elsif PLL_LOCKED = '1' and PLL_LOCKED2 = '1' and PLL_LOCKED3 = '1' then
             if rising_edge(CLOCK_50) then
                 if RESET_COUNTER /= 0 then
                     RESET_COUNTER <= RESET_COUNTER - 1;

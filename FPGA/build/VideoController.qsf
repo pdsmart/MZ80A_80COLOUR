@@ -264,11 +264,13 @@ set_global_assignment -name VHDL_FILE ../VideoController_Toplevel.vhd
 set_global_assignment -name QIP_FILE SFL.qip
 set_global_assignment -name QIP_FILE Video_Clock.qip
 set_global_assignment -name QIP_FILE Video_Clock_II.qip
+set_global_assignment -name QIP_FILE Video_Clock_III.qip
 set_global_assignment -name QIP_FILE vbuffer.qip
 set_global_assignment -name VHDL_FILE ../VideoController_pkg.vhd
 set_global_assignment -name VHDL_FILE ../VideoController.vhd
 set_global_assignment -name VHDL_FILE ../devices/RAM/dpram.vhd
 set_global_assignment -name SDC_FILE VideoController_constraints.sdc
+
 
 
 
