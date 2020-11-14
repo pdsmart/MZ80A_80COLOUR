@@ -239,16 +239,16 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to VVBLNK_
 
 # Mainboard video signals on the CN1 connector passed to the FPGA.
 # ================================================================
-set_location_assignment PIN_71 -to VMB_HBLNKn
-set_location_assignment PIN_72 -to VMB_LOAD
-set_location_assignment PIN_76 -to VMB_SYNCH
-set_location_assignment PIN_77 -to VMB_V_HBLNKn
-set_location_assignment PIN_79 -to VMB_VIDEO
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VMB_HBLNKn
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VMB_LOAD
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VMB_SYNCH
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VMB_V_HBLNKn
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VMB_VIDEO
+#set_location_assignment PIN_71 -to VMB_HBLNKn
+#set_location_assignment PIN_72 -to VMB_LOAD
+#set_location_assignment PIN_76 -to VMB_SYNCH
+#set_location_assignment PIN_77 -to VMB_V_HBLNKn
+#set_location_assignment PIN_79 -to VMB_VIDEO
+#set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VMB_HBLNKn
+#set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VMB_LOAD
+#set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VMB_SYNCH
+#set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VMB_V_HBLNKn
+#set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VMB_VIDEO
 
 # Reserved.
 # =========
@@ -265,11 +265,14 @@ set_global_assignment -name QIP_FILE SFL.qip
 set_global_assignment -name QIP_FILE Video_Clock.qip
 set_global_assignment -name QIP_FILE Video_Clock_II.qip
 set_global_assignment -name QIP_FILE Video_Clock_III.qip
+set_global_assignment -name QIP_FILE Video_Clock_IV.qip
 set_global_assignment -name QIP_FILE vbuffer.qip
 set_global_assignment -name VHDL_FILE ../VideoController_pkg.vhd
 set_global_assignment -name VHDL_FILE ../VideoController.vhd
 set_global_assignment -name VHDL_FILE ../devices/RAM/dpram.vhd
 set_global_assignment -name SDC_FILE VideoController_constraints.sdc
+
+
 
 
 

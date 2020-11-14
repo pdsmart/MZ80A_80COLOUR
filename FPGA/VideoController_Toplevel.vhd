@@ -85,10 +85,13 @@ architecture rtl of VideoControllerFPGA is
     signal VIDCLK_25_175MHZ       :       std_logic;
     signal VIDCLK_40MHZ           :       std_logic;
     signal VIDCLK_65MHZ           :       std_logic;
+    signal VIDCLK_8_86719MHZ      :       std_logic;
+    signal VIDCLK_17_7344MHZ      :       std_logic;
     signal VIDCLK_PSEUDO          :       std_logic;
     signal PLL_LOCKED             :       std_logic;
     signal PLL_LOCKED2            :       std_logic;
     signal PLL_LOCKED3            :       std_logic;
+    signal PLL_LOCKED4            :       std_logic;
     signal RESETn                 :       std_logic;
     signal RESET_COUNTER          :       unsigned(5 downto 0);
 begin
@@ -112,7 +115,7 @@ begin
     VCPLL2 : entity work.Video_Clock_II
     port map
     (
-         inclk0                  => SYS_CLK,
+         inclk0                  => CLOCK_50,
          areset                  => not VRESETn,
          c0                      => VIDCLK_65MHZ,
          c1                      => VIDCLK_25_175MHZ,
@@ -127,6 +130,17 @@ begin
          areset                  => not VRESETn,
          c0                      => VIDCLK_PSEUDO,
          locked                  => PLL_LOCKED3
+    );
+
+    -- Instantiate a 4th PLL to generate clocks for MZ-700 video modes.
+    VCPLL4 : entity work.Video_Clock_IV
+    port map
+    (
+         inclk0                  => CLOCK_50,
+         areset                  => not VRESETn,
+         c0                      => VIDCLK_8_86719MHZ,
+         c1                      => VIDCLK_17_7344MHZ,
+         locked                  => PLL_LOCKED4
     );
 
     -- Add the Serial Flash Loader megafunction to enable in-situ programming of the EPCS16 configuration memory.
@@ -146,11 +160,13 @@ begin
         -- Primary and video clocks.
         SYS_CLK                  => SYS_CLK,                                             -- 120MHz main FPGA clock.
         IF_CLK                   => IF_CLK,                                              -- 16MHz interface clock.
-        VIDCLK_8MHZ              => VIDCLK_8MHZ,                                         -- 8MHz base clock for video timing and gate clocking.
-        VIDCLK_16MHZ             => VIDCLK_16MHZ,                                        -- 16MHz base clock for video timing and gate clocking.
-        VIDCLK_65MHZ             => VIDCLK_65MHZ,                                        -- 65MHz base clock for video timing and gate clocking.
-        VIDCLK_25_175MHZ         => VIDCLK_25_175MHZ,                                    -- 25.175MHz base clock for video timing and gate clocking.
-        VIDCLK_40MHZ             => VIDCLK_40MHZ,                                        -- 40MHz base clock for video timing and gate clocking.
+        VIDCLK_8MHZ              => VIDCLK_8MHZ,                                         -- 2x 8MHz base clock for video timing and gate clocking.
+        VIDCLK_16MHZ             => VIDCLK_16MHZ,                                        -- 2x 16MHz base clock for video timing and gate clocking.
+        VIDCLK_65MHZ             => VIDCLK_65MHZ,                                        -- 2x 65MHz base clock for video timing and gate clocking.
+        VIDCLK_25_175MHZ         => VIDCLK_25_175MHZ,                                    -- 2x 25.175MHz base clock for video timing and gate clocking.
+        VIDCLK_40MHZ             => VIDCLK_40MHZ,                                        -- 2x 40MHz base clock for video timing and gate clocking.
+        VIDCLK_8_86719MHZ        => VIDCLK_8_86719MHZ,                                   -- 2x original MZ700 video clock.
+        VIDCLK_17_7344MHZ        => VIDCLK_17_7344MHZ,                                   -- 2x original MZ700 colour modulator clock.        
         VIDCLK_PSEUDO            => VIDCLK_PSEUDO,                                       -- Clock to create pixel slicing to generate pseudo monochrome.
 
         -- V[name] = Voltage translated signals which mirror the mainboard signals but at a lower voltage.
@@ -192,12 +208,12 @@ begin
     -- Process to reset the FPGA based on the external RESET trigger, PLL's being locked
     -- and a counter to set minimum width.
     --
-    FPGARESET: process(VRESETn, CLOCK_50, PLL_LOCKED, PLL_LOCKED2, PLL_LOCKED3)
+    FPGARESET: process(VRESETn, CLOCK_50, PLL_LOCKED, PLL_LOCKED2, PLL_LOCKED3, PLL_LOCKED4)
     begin
         if VRESETn = '0' then
             RESET_COUNTER        <= (others => '1');
             RESETn               <= '0';
-        elsif PLL_LOCKED = '1' and PLL_LOCKED2 = '1' and PLL_LOCKED3 = '1' then
+        elsif PLL_LOCKED = '1' and PLL_LOCKED2 = '1' and PLL_LOCKED3 = '1' and PLL_LOCKED4 = '1' then
             if rising_edge(CLOCK_50) then
                 if RESET_COUNTER /= 0 then
                     RESET_COUNTER <= RESET_COUNTER - 1;

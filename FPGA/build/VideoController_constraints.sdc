@@ -156,6 +156,26 @@ set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {a
 #**************************************************************
 # Set False Path
 #**************************************************************
+set_false_path  -from  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[3]}]  -to  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]
+set_false_path  -from  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[3]}]  -to  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]
+set_false_path  -from  [get_clocks {VCPLL2|altpll_component|auto_generated|pll1|clk[0]}]  -to  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[0]}]
+set_false_path  -from  [get_clocks {VCPLL2|altpll_component|auto_generated|pll1|clk[0]}]  -to  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]
+set_false_path  -from  [get_clocks {VCPLL2|altpll_component|auto_generated|pll1|clk[1]}]  -to  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[0]}]
+set_false_path  -from  [get_clocks {VCPLL2|altpll_component|auto_generated|pll1|clk[1]}]  -to  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]
+set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[0]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[0]}]
+set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[0]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[1]}]
+set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[0]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[2]}]
+set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[0]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[3]}]
+set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[0]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[4]}]
+set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[0]}]
+set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[1]}]
+set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[2]}]
+set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[3]}]
+set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[4]}]
+set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[0]}]  -to  [get_clocks {VCPLL2|altpll_component|auto_generated|pll1|clk[0]}]
+set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]  -to  [get_clocks {VCPLL2|altpll_component|auto_generated|pll1|clk[0]}]
+set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]  -to  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[0]}]
+set_false_path  -from  [get_clocks {CLOCK_50}]  -to  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]
 
 
 
