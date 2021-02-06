@@ -131,7 +131,7 @@ architecture rtl of VideoController is
     --   H_DSP_START,      H_DSP_END,    H_DSP_WND_START,  H_DSP_WND_END,    V_DSP_START,      V_DSP_END,   V_DSP_WND_START,  V_DSP_WND_END,   H_LINE_END,    V_LINE_END,   MAX_COLUMNS,       H_SYNC_START,        H_SYNC_END,           V_SYNC_START,    V_SYNC_END,             H_POLARITY,       V_POLARITY,         H_PX,             V_PX      			
       (            0,            320,              0,            320,              0,            200,              0,            200,            511,            259,         40,                320  + 43,        320 + 43  + 45,           200 + 19,      200 + 19 + 4,              0,               0,                0,               0),      -- 0  MZ80K/C/1200/A machines have a monochrome 60Hz display with scan of 512 x 260 for a 320x200 viewable area.
       (            0,            640,              0,            640,              0,            200,              0,            200,           1023,            259,         80,                640  + 106,       640 + 106 + 90,           200 + 19,      200 + 19 + 4,              0,               0,                0,               0),      -- 1  MZ80K/C/1200/A machines with an adapted monochrome 60Hz display with scan of 1024 x 260 for a 640x200 viewable area.			
-    --(            0,            320,              0,            320,              0,            200,              0,            200,            567,            311,         40,                320  + 80,        320 + 80  + 40,           200 + 50,      200 + 50 + 3,              0,               0,                0,               0),      -- 2  MZ80K/C/1200/A machines with MZ700 style colour @ 50Hz display with scan of 568 x 312 for a 320x200 viewable area.			
+    --(            0,            320,              0,            320,              0,            200,              0,            200,            567,            311,         40,                320  + 80,        320 + 80  + 40,           200 + 50,      200 + 50 + 3,              0,               0,                0,               0),      -- 2  MZ80K/C/1200/A machines with MZ700 style colour @ 50Hz display with scan of 568 x 312 for a 320x200 viewable area.
     --(            0,            640,              0,            640,              0,            200,              0,            200,           1135,            311,         80,                640  + 160,       640 + 160 + 80,           200 + 50,      200 + 50 + 3,              0,               0,                0,               0),      -- 3  MZ80K/C/1200/A machines with MZ700 style colour @ 50Hz display with scan of 1136 x 312 for a 640x200 viewable area.			
       (            0,            320,              0,            320,              0,            200,              0,            200,            567,            259,         40,                320  + 80,        320 + 80  + 40,           200 + 19,      200 + 19 + 4,              0,               0,                0,               0),      -- 2  MZ80K/C/1200/A machines with MZ700 style colour @ 60Hz display with scan of 512 x 260 for a 320x200 viewable area.			
       (            0,            640,              0,            640,              0,            200,              0,            200,           1135,            259,         80,                640  + 160,       640 + 160 + 80,           200 + 19,      200 + 19 + 4,              0,               0,                0,               0),      -- 3  MZ80K/C/1200/A machines with MZ700 style colour @ 60Hz display with scan of 1024 x 260 for a 640x200 viewable area.			
@@ -238,6 +238,10 @@ architecture rtl of VideoController is
     signal MODE_CPLD_SWITCH      :     std_logic := '1';                     -- Machine configuration (memory map, I/O etc) set in the CPLD. When this flag is set, the machine mode has changed. Flag is active for 1 clock cycle.
     signal CPLD_CFG_DATA         :     std_logic_vector(7 downto 0);         -- CPLD Configuration register.
     signal DSP_PARAM_SEL         :     std_logic_vector(3 downto 0);         -- Display parameter selection register.
+    signal DSP_PARAM_DATA        :     unsigned(7 downto 0);                 -- Video parameter update data.
+    signal DSP_PARAM_UPD         :     std_logic;                            -- Flag to indicate parameter update data is available.
+    signal DSP_PARAM_ADDR        :     std_logic;                            -- Video parameter address to update.
+    signal DSP_PARAM_CLR         :     std_logic;                            -- Flag to indicate parameter update data processed and can be cleared.
     signal PALETTE_PARAM_SEL     :     std_logic_vector(8 downto 0);         -- Palette parameter selection register.
     signal PALETTE_DO_R          :     std_logic_vector(4 downto 0);         -- Read Red palette output.
     signal PALETTE_DO_G          :     std_logic_vector(4 downto 0);         -- Read Green palette output.
@@ -306,6 +310,7 @@ architecture rtl of VideoController is
     signal GPU_COMMAND           :     std_logic_vector(7 downto 0);         -- GPU command register.
     signal GPU_STATUS            :     std_logic_vector(7 downto 0);         -- GPU Status register.
     signal GPU_STATE             :     GPUStateType;                         -- GPU FSM State.
+    signal GPU_START_ADDR        :     std_logic_vector(13 downto 0);        -- Address being worked on by the GPU.
     signal Z80_MA                :     std_logic_vector(11 downto 0);        -- CPU Address Masked according to machine model.
     signal CS_INVERTn            :     std_logic;                            -- Chip Select to enable Inverse mode.
     signal CS_SCROLLn            :     std_logic;                            -- Chip Select to perform a hardware scroll.
@@ -468,11 +473,12 @@ begin
         width_a              => 5,
         widthad_b            => 9,
         width_b              => 5,
-        outdata_reg_b        => "UNREGISTERED"
+        outdata_reg_a        => "CLOCK0",
+        outdata_reg_b        => "CLOCK1"
     )
     PORT MAP (
         -- Port A used for CPU access.
-        clock_a              => VID_CLK,       
+        clock_a              => SYS_CLK,
         clocken_a            => '1',
         address_a            => PALETTE_PARAM_SEL,
         data_a               => VDATA(4 downto 0),   
@@ -494,11 +500,12 @@ begin
         width_a              => 5,
         widthad_b            => 9,
         width_b              => 5,
-        outdata_reg_b        => "UNREGISTERED"
+        outdata_reg_a        => "CLOCK0",
+        outdata_reg_b        => "CLOCK1"
     )
     PORT MAP (
         -- Port A used for CPU access.
-        clock_a              => VID_CLK,       
+        clock_a              => SYS_CLK,
         clocken_a            => '1',
         address_a            => PALETTE_PARAM_SEL,
         data_a               => VDATA(4 downto 0),   
@@ -520,11 +527,12 @@ begin
         width_a              => 5,
         widthad_b            => 9,
         width_b              => 5,
-        outdata_reg_b        => "UNREGISTERED"
+        outdata_reg_a        => "CLOCK0",
+        outdata_reg_b        => "CLOCK1"
     )
     PORT MAP (
         -- Port A used for CPU access.
-        clock_a              => VID_CLK,       
+        clock_a              => SYS_CLK,
         clocken_a            => '1',
         address_a            => PALETTE_PARAM_SEL,
         data_a               => VDATA(4 downto 0),   
@@ -551,11 +559,12 @@ begin
         width_a              => 8,
         widthad_b            => 11,
         width_b              => 16,
+        outdata_reg_a        => "UNREGISTERED",
         outdata_reg_b        => "UNREGISTERED"
     )
     PORT MAP (
         -- Port A used for CPU access.
-        clock_a              => not SYS_CLK,       
+        clock_a              => SYS_CLK,
         clocken_a            => '1',
         address_a            => VRAM_ADDR(10 downto 0) & VRAM_ADDR(11),
         data_a               => VRAM_DI,   
@@ -581,6 +590,7 @@ begin
         width_a              => 8,
         widthad_b            => 14,
         width_b              => 8,
+        outdata_reg_a        => "UNREGISTERED",
         outdata_reg_b        => "UNREGISTERED"
     )
     PORT MAP (
@@ -611,6 +621,7 @@ begin
         width_a              => 8,
         widthad_b            => 14,
         width_b              => 8,
+        outdata_reg_a        => "UNREGISTERED",
         outdata_reg_b        => "UNREGISTERED"
     )
     PORT MAP (
@@ -642,6 +653,7 @@ begin
         width_a              => 8,
         widthad_b            => 14,
         width_b              => 8,
+        outdata_reg_a        => "UNREGISTERED",
         outdata_reg_b        => "UNREGISTERED"
     )
     PORT MAP (
@@ -671,7 +683,9 @@ begin
         widthad_a            => 12,
         width_a              => 8,
         widthad_b            => 12,
-        width_b              => 8
+        width_b              => 8,
+        outdata_reg_a        => "UNREGISTERED",
+        outdata_reg_b        => "UNREGISTERED"
     ) 
     PORT MAP (
         clock_a              => SYS_CLK,
@@ -698,10 +712,11 @@ begin
         widthad_a            => 12,
         width_a              => 8,
         widthad_b            => 12,
-        width_b              => 8
+        width_b              => 8,
+        outdata_reg_a        => "UNREGISTERED"
     ) 
     PORT MAP (
-        clock_a              => VID_CLK,
+        clock_a              => SYS_CLK,
         clocken_a            => '1',
         address_a            => CG_ADDR(11 downto 0),
         data_a               => CGRAM_DI,
@@ -1241,6 +1256,7 @@ begin
                 VIDEOMODE                        <= 0;
                 VIDEOMODE_RESET_TIMER            <= (others => '1');
                 VIDCLK_DIV                       <= '0';
+                DSP_PARAM_CLR                    <= '0';
 
         elsif rising_edge(VID_CLK) then
 
@@ -1315,91 +1331,93 @@ begin
             --
             elsif VIDCLK_DIV = '1' then
 
+                -- Parameter update handshake. Clear the flag when the Z80 domain has cleared its flag.
+                if DSP_PARAM_CLR = '1' and DSP_PARAM_UPD = '0' then
+                    DSP_PARAM_CLR                <= '0';
+                end if;
+
                 -- Ability to adjust the video parameter registers to tune or override the default values from the lookup table. This can be useful in debugging,
                 -- adjusting to a new monitor etc.
                 --
-                if CS_IO_DXXn = '0' and VZ80_WRn = '0' then
+                -- The actual data is captured in the Z80 clock domain and passed/synchronised to this multi-clock domain via internal hand shaked registers.
+                --
+                if DSP_PARAM_UPD = '1' and DSP_PARAM_CLR = '0' then
 
-                    case VADDR(3 downto 0) is
-                        -- 0xD0 - Set the parameter number to update.
-                        when "0000" =>
-                            DSP_PARAM_SEL                         <= VDATA(3 downto 0);
-
-                        -- 0xD1 - Update the lower selected parameter byte.
-                        when "0001" =>
+                    if DSP_PARAM_ADDR = '0' then
                             case DSP_PARAM_SEL is
                                 when "0000" =>
-                                    H_DSP_START(7 downto 0)       <= unsigned(VDATA);
+                                    H_DSP_START(7 downto 0)       <= DSP_PARAM_DATA;
                                 when "0001" =>
-                                    H_DSP_END(7 downto 0)         <= unsigned(VDATA);
+                                    H_DSP_END(7 downto 0)         <= DSP_PARAM_DATA;
                                 when "0010" =>
-                                    H_DSP_WND_START(7 downto 0)   <= unsigned(VDATA);
+                                    H_DSP_WND_START(7 downto 0)   <= DSP_PARAM_DATA;
                                 when "0011" =>
-                                    H_DSP_WND_END(7 downto 0)     <= unsigned(VDATA);
+                                    H_DSP_WND_END(7 downto 0)     <= DSP_PARAM_DATA;
                                 when "0100" =>
-                                    V_DSP_START(7 downto 0)       <= unsigned(VDATA);
+                                    V_DSP_START(7 downto 0)       <= DSP_PARAM_DATA;
                                 when "0101" =>
-                                    V_DSP_END(7 downto 0)         <= unsigned(VDATA);
+                                    V_DSP_END(7 downto 0)         <= DSP_PARAM_DATA;
                                 when "0110" =>
-                                    V_DSP_WND_START(7 downto 0)   <= unsigned(VDATA);
+                                    V_DSP_WND_START(7 downto 0)   <= DSP_PARAM_DATA;
                                 when "0111" =>
-                                    V_DSP_WND_END(7 downto 0)     <= unsigned(VDATA);
+                                    V_DSP_WND_END(7 downto 0)     <= DSP_PARAM_DATA;
                                 when "1000" =>
-                                    H_LINE_END(7 downto 0)        <= unsigned(VDATA);
+                                    H_LINE_END(7 downto 0)        <= DSP_PARAM_DATA;
                                 when "1001" =>
-                                    V_LINE_END(7 downto 0)        <= unsigned(VDATA);
+                                    V_LINE_END(7 downto 0)        <= DSP_PARAM_DATA;
                                 when "1010" =>
-                                    MAX_COLUMN(7 downto 0)        <= unsigned(VDATA);
+                                    MAX_COLUMN(7 downto 0)        <= DSP_PARAM_DATA;
                                 when "1011" =>
-                                    H_SYNC_START(7 downto 0)      <= unsigned(VDATA);
+                                    H_SYNC_START(7 downto 0)      <= DSP_PARAM_DATA;
                                 when "1100" =>
-                                    H_SYNC_END(7 downto 0)        <= unsigned(VDATA);
+                                    H_SYNC_END(7 downto 0)        <= DSP_PARAM_DATA;
                                 when "1101" =>
-                                    V_SYNC_START(7 downto 0)      <= unsigned(VDATA);
+                                    V_SYNC_START(7 downto 0)      <= DSP_PARAM_DATA;
                                 when "1110" =>
-                                    V_SYNC_END(7 downto 0)        <= unsigned(VDATA);
+                                    V_SYNC_END(7 downto 0)        <= DSP_PARAM_DATA;
                                 when "1111" =>
-                                    H_PX(7 downto 0)              <= unsigned(VDATA);
+                                    H_PX(7 downto 0)              <= DSP_PARAM_DATA;
                             end case;
+                    else
 
-                        -- 0xD2 - Update the upper selected parameter byte.
-                        when "0010" =>
                             case DSP_PARAM_SEL is
                                 when "0000" =>
-                                    H_DSP_START(15 downto 8)      <= unsigned(VDATA);
+                                    H_DSP_START(15 downto 8)      <= DSP_PARAM_DATA;
                                 when "0001" =>
-                                    H_DSP_END(15 downto 8)        <= unsigned(VDATA);
+                                    H_DSP_END(15 downto 8)        <= DSP_PARAM_DATA;
                                 when "0010" =>
-                                    H_DSP_WND_START(15 downto 8)  <= unsigned(VDATA);
+                                    H_DSP_WND_START(15 downto 8)  <= DSP_PARAM_DATA;
                                 when "0011" =>
-                                    H_DSP_WND_END(15 downto 8)    <= unsigned(VDATA);
+                                    H_DSP_WND_END(15 downto 8)    <= DSP_PARAM_DATA;
                                 when "0100" =>
-                                    V_DSP_START(15 downto 8)      <= unsigned(VDATA);
+                                    V_DSP_START(15 downto 8)      <= DSP_PARAM_DATA;
                                 when "0101" =>
-                                    V_DSP_END(15 downto 8)        <= unsigned(VDATA);
+                                    V_DSP_END(15 downto 8)        <= DSP_PARAM_DATA;
                                 when "0110" =>
-                                    V_DSP_WND_START(15 downto 8)  <= unsigned(VDATA);
+                                    V_DSP_WND_START(15 downto 8)  <= DSP_PARAM_DATA;
                                 when "0111" =>
-                                    V_DSP_WND_END(15 downto 8)    <= unsigned(VDATA);
+                                    V_DSP_WND_END(15 downto 8)    <= DSP_PARAM_DATA;
                                 when "1000" =>
-                                    H_LINE_END(15 downto 8)       <= unsigned(VDATA);
+                                    H_LINE_END(15 downto 8)       <= DSP_PARAM_DATA;
                                 when "1001" =>
-                                    V_LINE_END(15 downto 8)       <= unsigned(VDATA);
+                                    V_LINE_END(15 downto 8)       <= DSP_PARAM_DATA;
                                 when "1010" =>
                                 when "1011" =>
-                                    H_SYNC_START(15 downto 8)     <= unsigned(VDATA);
+                                    H_SYNC_START(15 downto 8)     <= DSP_PARAM_DATA;
                                 when "1100" =>
-                                    H_SYNC_END(15 downto 8)       <= unsigned(VDATA);
+                                    H_SYNC_END(15 downto 8)       <= DSP_PARAM_DATA;
                                 when "1101" =>
-                                    V_SYNC_START(15 downto 8)     <= unsigned(VDATA);
+                                    V_SYNC_START(15 downto 8)     <= DSP_PARAM_DATA;
                                 when "1110" =>
-                                    V_SYNC_END(15 downto 8)       <= unsigned(VDATA);
+                                    V_SYNC_END(15 downto 8)       <= DSP_PARAM_DATA;
                                 when "1111" =>
-                                    V_PX(7 downto 0)              <= unsigned(VDATA);
+                                    V_PX(7 downto 0)              <= DSP_PARAM_DATA;
                             end case;
 
-                        when others =>
-                    end case;
+                    end if;
+
+                    -- Flag the data has been registered.
+                    DSP_PARAM_CLR                <= '1';
                 end if;
 
                 -- Activate/deactivate signals according to pixel position.
@@ -1627,8 +1645,7 @@ begin
     --   0x82 = Parameterised Clear framebuffer screen. Parameters: start x [87:72], start y [71:56], end x [55:40], end y [39:24], R Filter [23:16], G Filter [15:8], B Filter [7:0] - R/G/B Filters are 8 pixel wide.
     -- Other commands.
     --   0xFF = Immediate GPU reset, cancel current command and return to idle.
-    GPU: process( VRESETn, IF_CLK, SYS_CLK )
-        variable GPU_START_ADDR   : std_logic_vector(13 downto 0);        -- Current start address being worked on by the GPU.
+    GPU: process( VRESETn, SYS_CLK )
         variable GPU_START_X      : integer range 0 to 640;               -- X starting location.
         variable GPU_START_Y      : integer range 0 to 200;               -- Y starting location.
         variable GPU_END_X        : integer range 0 to 640;               -- X ending location.
@@ -1755,7 +1772,7 @@ begin
                         GPU_STATE         <= GPU_FB_Clear_Start;
     
                     when GPU_FB_Clear_Start =>
-                        GPU_START_ADDR    := std_logic_vector(to_unsigned(((GPU_START_X / 8) + (GPU_START_Y * 80)), 14));
+                        GPU_START_ADDR    <= std_logic_vector(to_unsigned(((GPU_START_X / 8) + (GPU_START_Y * 80)), 14));
                         GRAM_GPU_ADDR     <= std_logic_vector(to_unsigned(((GPU_START_X / 8) + (GPU_START_Y * 80)), 14));
                         GRAM_GPU_DI_R     <= GPU_FILTER_R;
                         GRAM_GPU_DI_G     <= GPU_FILTER_G;
@@ -1782,7 +1799,7 @@ begin
                                 GPU_STATE     <= GPU_FB_Clear_3;
                             else
                                 GRAM_GPU_ADDR <= GPU_START_ADDR + 80;
-                                GPU_START_ADDR:= GPU_START_ADDR + 80;
+                                GPU_START_ADDR<= GPU_START_ADDR + 80;
                                 GPU_VAR_Y     := GPU_VAR_Y + 1;
                                 GPU_STATE     <= GPU_FB_Clear_1;
                             end if;
@@ -1857,10 +1874,10 @@ begin
                     when GPU_VRAM_Clear_Start =>
                         -- For modes with hardware scroll, add in the current offset so the visible part of the display is updated.
                         if MODE_VIDEO_MZ80A = '1' or MODE_VIDEO_MZ700 = '1' then
-                            GPU_START_ADDR:= std_logic_vector(to_unsigned((GPU_START_X + (GPU_START_Y * GPU_COLUMNS)), 14)) + (OFFSET_ADDR & "000");
+                            GPU_START_ADDR<= std_logic_vector(to_unsigned((GPU_START_X + (GPU_START_Y * GPU_COLUMNS)), 14)) + (OFFSET_ADDR & "000");
                             VRAM_GPU_ADDR <= std_logic_vector(to_unsigned((GPU_START_X + (GPU_START_Y * GPU_COLUMNS)), 13)) + (OFFSET_ADDR & "000");
                         else
-                            GPU_START_ADDR:= std_logic_vector(to_unsigned((GPU_START_X + (GPU_START_Y * GPU_COLUMNS)), 14));
+                            GPU_START_ADDR<= std_logic_vector(to_unsigned((GPU_START_X + (GPU_START_Y * GPU_COLUMNS)), 14));
                             VRAM_GPU_ADDR <= std_logic_vector(to_unsigned((GPU_START_X + (GPU_START_Y * GPU_COLUMNS)), 13));
                         end if;
                         GPU_VAR_Y         := GPU_START_Y;
@@ -1899,10 +1916,10 @@ begin
                                 -- Alternate between character ram and attribute ram, they differ by 0x800 bytes, ie; 0xD000:D7FF and 0xD800:0xDFFF
                                 if VRAM_GPU_ADDR < X"800" then
                                     VRAM_GPU_ADDR  <= GPU_START_ADDR(12 downto 0) + X"800";
-                                    GPU_START_ADDR := GPU_START_ADDR + X"800";
+                                    GPU_START_ADDR <= GPU_START_ADDR + X"800";
                                 else
                                     VRAM_GPU_ADDR  <= GPU_START_ADDR(12 downto 0) - X"800" + GPU_COLUMNS;
-                                    GPU_START_ADDR := GPU_START_ADDR - X"800" + GPU_COLUMNS;
+                                    GPU_START_ADDR <= GPU_START_ADDR - X"800" + GPU_COLUMNS;
                                     GPU_VAR_Y      := GPU_VAR_Y + 1;
     
                                     -- If we have filled to the set line, exit.
@@ -2010,6 +2027,7 @@ begin
             CGRAM_WEn             <= '1';
             GPU_PARAMS            <= (others => '0');
             GPU_COMMAND           <= (others => '0');
+            DSP_PARAM_UPD         <= '0';
     
         elsif rising_edge(IF_CLK) then
 
@@ -2395,13 +2413,44 @@ begin
 
                 -- Set the mode switch event flag if the mode changes.
                 if CPLD_CFG_DATA(2 downto 0) /= VDATA(2 downto 0) then
-                    MODE_CPLD_SWITCH  <= '1';
+                    MODE_CPLD_SWITCH      <= '1';
                 end if;
 
                 -- Store the new value into the register, used for read operations.
-                CPLD_CFG_DATA         <= VDATA;
+                CPLD_CFG_DATA             <= VDATA;
             else
-                MODE_CPLD_SWITCH      <= '0';
+                MODE_CPLD_SWITCH          <= '0';
+            end if;
+
+            -- Clear the parameter update flag if it has been actioned and the handshake has been set.
+            if DSP_PARAM_UPD = '1' and DSP_PARAM_CLR = '1' then
+                DSP_PARAM_UPD             <= '0';
+            end if;
+
+            -- Ability to adjust the video parameter registers to tune or override the default values from the lookup table. This can be useful in debugging,
+            -- adjusting to a new monitor etc.
+            --
+            if CS_IO_DXXn = '0' and VZ80_WRn = '0' then
+
+                case VADDR(3 downto 0) is
+                    -- 0xD0 - Set the parameter number to update.
+                    when "0000" =>
+                        DSP_PARAM_SEL     <= VDATA(3 downto 0);
+
+                    -- 0xD1 - Update the lower selected parameter byte.
+                    when "0001" =>
+                        DSP_PARAM_DATA    <= unsigned(VDATA);
+                        DSP_PARAM_ADDR    <= '0';
+                        DSP_PARAM_UPD     <= '1';
+
+                    -- 0xD2 - Update the upper selected parameter byte.
+                    when "0010" =>
+                        DSP_PARAM_DATA    <= unsigned(VDATA);
+                        DSP_PARAM_ADDR    <= '1';
+                        DSP_PARAM_UPD     <= '1';
+
+                    when others =>
+                end case;
             end if;
         end if;
 

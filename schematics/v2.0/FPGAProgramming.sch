@@ -1,0 +1,650 @@
+EESchema Schematic File Version 4
+LIBS:MZ80-80CLR-cache
+EELAYER 29 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 5 6
+Title "FPGA Support Circuits."
+Date "2020-06-27"
+Rev "2.0"
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 "FPGA Programming and support circuits."
+$EndDescr
+$Comp
+L epm7128slc84:EP3C25E144C8N U?
+U 2 1 6D244DB7
+P 2400 2000
+F 0 "U?" H 2300 2800 50  0000 C CNN
+F 1 "EP3C25E144C8N" H 2400 1050 50  0000 C CNN
+F 2 "Package_QFP" H 3100 200 50  0001 L CNN
+F 3 "https://www.altera.com/content/dam/altera-www/global/en_US/pdfs/literature/hb/max2/max2_mii5v1.pdf" H 4050 1200 50  0001 C CNN
+	2    2400 2000
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector_Generic:Conn_02x05_Odd_Even J?
+U 1 1 6D2483D3
+P 5000 1900
+F 0 "J?" H 5050 2317 50  0000 C CNN
+F 1 "JTAG FPGA" H 5050 2226 50  0000 C CNN
+F 2 "" H 5000 1900 50  0001 C CNN
+F 3 "~" H 5000 1900 50  0001 C CNN
+	1    5000 1900
+	1    0    0    -1  
+$EndComp
+$Comp
+L epm7128slc84:EPCS16 U?
+U 1 1 6D24AB29
+P 2350 3900
+F 0 "U?" H 2350 3900 39  0000 C CNN
+F 1 "EPCS16" H 2350 3800 39  0000 C CNN
+F 2 "" H 2350 3900 39  0001 C CNN
+F 3 "" H 2350 3900 39  0001 C CNN
+	1    2350 3900
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GNDPWR #PWR?
+U 1 1 6D254BE6
+P 2350 4350
+F 0 "#PWR?" H 2350 4150 50  0001 C CNN
+F 1 "GNDPWR" H 2500 4350 50  0000 C CNN
+F 2 "" H 2350 4300 50  0001 C CNN
+F 3 "" H 2350 4300 50  0001 C CNN
+	1    2350 4350
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2200 3450 2200 3400
+Wire Wire Line
+	2200 3400 2350 3400
+Wire Wire Line
+	2500 3400 2500 3450
+Wire Wire Line
+	2350 3400 2350 3450
+Connection ~ 2350 3400
+Wire Wire Line
+	2350 3400 2500 3400
+$Comp
+L Device:C C?
+U 1 1 6D256B48
+P 3050 3550
+F 0 "C?" H 3165 3596 50  0000 L CNN
+F 1 "100nF" H 3165 3505 50  0000 L CNN
+F 2 "" H 3088 3400 50  0001 C CNN
+F 3 "~" H 3050 3550 50  0001 C CNN
+	1    3050 3550
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2500 3400 3050 3400
+Connection ~ 2500 3400
+$Comp
+L power:GNDPWR #PWR?
+U 1 1 6D257DA1
+P 3050 3700
+F 0 "#PWR?" H 3050 3500 50  0001 C CNN
+F 1 "GNDPWR" H 3200 3700 50  0000 C CNN
+F 2 "" H 3050 3650 50  0001 C CNN
+F 3 "" H 3050 3650 50  0001 C CNN
+	1    3050 3700
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3450 3850 3450 2250
+Wire Wire Line
+	3450 2250 3000 2250
+Wire Wire Line
+	2750 3850 3450 3850
+Wire Wire Line
+	3500 3950 3500 2350
+Wire Wire Line
+	3500 2350 3000 2350
+Wire Wire Line
+	2750 3950 3500 3950
+Wire Wire Line
+	1950 3950 1850 3950
+Wire Wire Line
+	1850 3950 1850 4550
+Wire Wire Line
+	1850 4550 3550 4550
+Wire Wire Line
+	3550 4550 3550 2150
+Wire Wire Line
+	3550 2150 3000 2150
+Wire Wire Line
+	1950 3850 1800 3850
+Wire Wire Line
+	1800 3850 1800 4600
+Wire Wire Line
+	1800 4600 3600 4600
+Wire Wire Line
+	3600 4600 3600 2450
+Wire Wire Line
+	3600 2450 3000 2450
+Wire Wire Line
+	3000 1800 4100 1800
+Wire Wire Line
+	4100 1800 4100 1700
+Wire Wire Line
+	4100 1700 4800 1700
+Wire Wire Line
+	3000 2000 4150 2000
+Wire Wire Line
+	4150 2000 4150 1800
+Wire Wire Line
+	4150 1800 4800 1800
+Wire Wire Line
+	3000 1900 4300 1900
+Wire Wire Line
+	3000 1700 4050 1700
+Wire Wire Line
+	4050 1700 4050 2100
+Wire Wire Line
+	4050 2100 4800 2100
+NoConn ~ 4800 2000
+NoConn ~ 5300 2000
+NoConn ~ 5300 1900
+Wire Wire Line
+	5300 1700 5400 1700
+Wire Wire Line
+	5400 1700 5400 2100
+Wire Wire Line
+	5400 2100 5300 2100
+$Comp
+L power:GNDPWR #PWR?
+U 1 1 6D269E93
+P 5400 2200
+F 0 "#PWR?" H 5400 2000 50  0001 C CNN
+F 1 "GNDPWR" H 5550 2200 50  0000 C CNN
+F 2 "" H 5400 2150 50  0001 C CNN
+F 3 "" H 5400 2150 50  0001 C CNN
+	1    5400 2200
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5400 2200 5400 2100
+Connection ~ 5400 2100
+Wire Wire Line
+	5300 1800 5600 1800
+Wire Wire Line
+	5600 1800 5600 1750
+$Comp
+L power:+2V5 #PWR?
+U 1 1 6D26C04E
+P 5600 1750
+F 0 "#PWR?" H 5600 1600 50  0001 C CNN
+F 1 "+2V5" H 5615 1923 50  0000 C CNN
+F 2 "" H 5600 1750 50  0001 C CNN
+F 3 "" H 5600 1750 50  0001 C CNN
+	1    5600 1750
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R_Small R?
+U 1 1 6D26CD8E
+P 3300 1000
+F 0 "R?" H 3350 1050 50  0000 L CNN
+F 1 "10K" H 3350 950 50  0000 L CNN
+F 2 "" H 3300 1000 50  0001 C CNN
+F 3 "~" H 3300 1000 50  0001 C CNN
+	1    3300 1000
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R_Small R?
+U 1 1 6D26E25E
+P 3550 1000
+F 0 "R?" H 3600 1050 50  0000 L CNN
+F 1 "10K" H 3600 950 50  0000 L CNN
+F 2 "" H 3550 1000 50  0001 C CNN
+F 3 "~" H 3550 1000 50  0001 C CNN
+	1    3550 1000
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R_Small R?
+U 1 1 6D26EE17
+P 3800 1000
+F 0 "R?" H 3850 1050 50  0000 L CNN
+F 1 "10K" H 3850 950 50  0000 L CNN
+F 2 "" H 3800 1000 50  0001 C CNN
+F 3 "~" H 3800 1000 50  0001 C CNN
+	1    3800 1000
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3300 1100 3300 1250
+Wire Wire Line
+	3300 1250 3000 1250
+Wire Wire Line
+	3550 1100 3550 1350
+Wire Wire Line
+	3550 1350 3000 1350
+Wire Wire Line
+	3800 1100 3800 1550
+Wire Wire Line
+	3800 1550 3000 1550
+$Comp
+L power:GNDPWR #PWR?
+U 1 1 6D2718E1
+P 3200 1450
+F 0 "#PWR?" H 3200 1250 50  0001 C CNN
+F 1 "GNDPWR" H 3350 1450 50  0000 C CNN
+F 2 "" H 3200 1400 50  0001 C CNN
+F 3 "" H 3200 1400 50  0001 C CNN
+	1    3200 1450
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3000 1450 3200 1450
+$Comp
+L Device:R_Small R?
+U 1 1 6D27313A
+P 4050 1000
+F 0 "R?" H 4100 1050 50  0000 L CNN
+F 1 "10K" H 4100 950 50  0000 L CNN
+F 2 "" H 4050 1000 50  0001 C CNN
+F 3 "~" H 4050 1000 50  0001 C CNN
+	1    4050 1000
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R_Small R?
+U 1 1 6D27430F
+P 4300 1000
+F 0 "R?" H 4350 1050 50  0000 L CNN
+F 1 "10K" H 4350 950 50  0000 L CNN
+F 2 "" H 4300 1000 50  0001 C CNN
+F 3 "~" H 4300 1000 50  0001 C CNN
+	1    4300 1000
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4050 1100 4050 1700
+Connection ~ 4050 1700
+Wire Wire Line
+	4300 1100 4300 1900
+Connection ~ 4300 1900
+Wire Wire Line
+	4300 1900 4800 1900
+Wire Wire Line
+	3300 900  3300 850 
+Wire Wire Line
+	3300 850  3550 850 
+Wire Wire Line
+	3550 850  3550 900 
+Wire Wire Line
+	3550 850  3800 850 
+Wire Wire Line
+	3800 850  3800 900 
+Connection ~ 3550 850 
+Wire Wire Line
+	4050 900  4050 850 
+Wire Wire Line
+	4050 850  4200 850 
+Wire Wire Line
+	4300 850  4300 900 
+$Comp
+L power:+2V5 #PWR?
+U 1 1 6D27950E
+P 4200 850
+F 0 "#PWR?" H 4200 700 50  0001 C CNN
+F 1 "+2V5" H 4215 1023 50  0000 C CNN
+F 2 "" H 4200 850 50  0001 C CNN
+F 3 "" H 4200 850 50  0001 C CNN
+	1    4200 850 
+	1    0    0    -1  
+$EndComp
+Connection ~ 4200 850 
+Wire Wire Line
+	4200 850  4300 850 
+$Comp
+L power:+3.3V #PWR?
+U 1 1 6D27A094
+P 3550 850
+F 0 "#PWR?" H 3550 700 50  0001 C CNN
+F 1 "+3.3V" H 3565 1023 50  0000 C CNN
+F 2 "" H 3550 850 50  0001 C CNN
+F 3 "" H 3550 850 50  0001 C CNN
+	1    3550 850 
+	1    0    0    -1  
+$EndComp
+$Comp
+L Oscillator:ASE-xxxMHz X?
+U 1 1 6D27DA45
+P 950 1350
+F 0 "X?" H 1200 1300 50  0000 L CNN
+F 1 "ASE-50MHz" H 1200 1200 50  0000 L CNN
+F 2 "Oscillator:Oscillator_SMD_Abracon_ASE-4Pin_3.2x2.5mm" H 1650 1000 50  0001 C CNN
+F 3 "http://www.abracon.com/Oscillators/ASV.pdf" H 850 1350 50  0001 C CNN
+	1    950  1350
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1250 1350 1800 1350
+$Comp
+L power:GNDPWR #PWR?
+U 1 1 6D27FEA8
+P 950 1650
+F 0 "#PWR?" H 950 1450 50  0001 C CNN
+F 1 "GNDPWR" H 1100 1650 50  0000 C CNN
+F 2 "" H 950 1600 50  0001 C CNN
+F 3 "" H 950 1600 50  0001 C CNN
+	1    950  1650
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:+3.3V #PWR?
+U 1 1 6D280F33
+P 950 900
+F 0 "#PWR?" H 950 750 50  0001 C CNN
+F 1 "+3.3V" H 965 1073 50  0000 C CNN
+F 2 "" H 950 900 50  0001 C CNN
+F 3 "" H 950 900 50  0001 C CNN
+	1    950  900 
+	1    0    0    -1  
+$EndComp
+NoConn ~ 650  1350
+$Comp
+L Device:C C?
+U 1 1 6D283FE9
+P 1300 1050
+F 0 "C?" H 1415 1096 50  0000 L CNN
+F 1 "100nF" H 1415 1005 50  0000 L CNN
+F 2 "" H 1338 900 50  0001 C CNN
+F 3 "~" H 1300 1050 50  0001 C CNN
+	1    1300 1050
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	950  900  1300 900 
+$Comp
+L power:GNDPWR #PWR?
+U 1 1 6D283FF4
+P 1300 1200
+F 0 "#PWR?" H 1300 1000 50  0001 C CNN
+F 1 "GNDPWR" H 1450 1200 50  0000 C CNN
+F 2 "" H 1300 1150 50  0001 C CNN
+F 3 "" H 1300 1150 50  0001 C CNN
+	1    1300 1200
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	950  900  950  1050
+Connection ~ 950  900 
+NoConn ~ 1800 1450
+NoConn ~ 1800 1550
+NoConn ~ 1800 1650
+NoConn ~ 1800 1750
+NoConn ~ 1800 1850
+NoConn ~ 1800 1950
+NoConn ~ 1800 2050
+NoConn ~ 1800 2150
+NoConn ~ 1800 2250
+NoConn ~ 1800 2350
+NoConn ~ 1800 2450
+NoConn ~ 1800 2550
+NoConn ~ 1800 2650
+NoConn ~ 1800 2750
+Wire Wire Line
+	3000 2600 3100 2600
+Wire Wire Line
+	3100 2800 3000 2800
+$Comp
+L power:GNDPWR #PWR?
+U 1 1 6D2A5329
+P 3100 2950
+F 0 "#PWR?" H 3100 2750 50  0001 C CNN
+F 1 "GNDPWR" H 3250 2950 50  0000 C CNN
+F 2 "" H 3100 2900 50  0001 C CNN
+F 3 "" H 3100 2900 50  0001 C CNN
+	1    3100 2950
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3100 2600 3100 2800
+Wire Wire Line
+	3100 2800 3100 2950
+Connection ~ 3100 2800
+$Comp
+L power:+2V5 #PWR?
+U 1 1 6D2A86F7
+P 3200 2700
+F 0 "#PWR?" H 3200 2550 50  0001 C CNN
+F 1 "+2V5" H 3215 2873 50  0000 C CNN
+F 2 "" H 3200 2700 50  0001 C CNN
+F 3 "" H 3200 2700 50  0001 C CNN
+	1    3200 2700
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3000 2700 3200 2700
+$Comp
+L Switch:SW_Push SW?
+U 1 1 6D2AF935
+P 5050 1350
+F 0 "SW?" H 5050 1635 50  0000 C CNN
+F 1 "CONFIG" H 5050 1544 50  0000 C CNN
+F 2 "" H 5050 1550 50  0001 C CNN
+F 3 "~" H 5050 1550 50  0001 C CNN
+	1    5050 1350
+	1    0    0    -1  
+$EndComp
+Connection ~ 3550 1350
+Wire Wire Line
+	5400 1350 5400 1700
+Connection ~ 5400 1700
+$Comp
+L Switch:SW_Push SW?
+U 1 1 6DC834D5
+P 1550 5550
+F 0 "SW?" H 1550 5835 50  0000 C CNN
+F 1 "RESET" H 1550 5744 50  0000 C CNN
+F 2 "" H 1550 5750 50  0001 C CNN
+F 3 "~" H 1550 5750 50  0001 C CNN
+	1    1550 5550
+	-1   0    0    -1  
+$EndComp
+Wire Wire Line
+	3550 1350 4850 1350
+Wire Wire Line
+	5250 1350 5400 1350
+$Comp
+L Device:R_Small R?
+U 1 1 6DC931C7
+P 1350 5300
+F 0 "R?" H 1400 5350 50  0000 L CNN
+F 1 "10K" H 1400 5250 50  0000 L CNN
+F 2 "" H 1350 5300 50  0001 C CNN
+F 3 "~" H 1350 5300 50  0001 C CNN
+	1    1350 5300
+	-1   0    0    -1  
+$EndComp
+Wire Wire Line
+	1350 5150 1350 5200
+$Comp
+L power:+3.3V #PWR?
+U 1 1 6DC931D5
+P 1350 5150
+F 0 "#PWR?" H 1350 5000 50  0001 C CNN
+F 1 "+3.3V" H 1365 5323 50  0000 C CNN
+F 2 "" H 1350 5150 50  0001 C CNN
+F 3 "" H 1350 5150 50  0001 C CNN
+	1    1350 5150
+	-1   0    0    -1  
+$EndComp
+$Comp
+L Device:C C?
+U 1 1 6DC95D7E
+P 1350 5850
+F 0 "C?" H 1465 5896 50  0000 L CNN
+F 1 "100nF" H 1465 5805 50  0000 L CNN
+F 2 "" H 1388 5700 50  0001 C CNN
+F 3 "~" H 1350 5850 50  0001 C CNN
+	1    1350 5850
+	-1   0    0    -1  
+$EndComp
+Wire Wire Line
+	1350 5400 1350 5550
+Connection ~ 1350 5550
+Wire Wire Line
+	1350 5550 1350 5700
+Wire Wire Line
+	1350 6000 1800 6000
+Wire Wire Line
+	1800 6000 1800 5550
+Wire Wire Line
+	1800 5550 1750 5550
+Text GLabel 7300 1200 0    39   Input ~ 0
+~RESET~
+Wire Wire Line
+	750  5550 1350 5550
+$Comp
+L epm7128slc84:EPM7512AEQFP144-3 U?
+U 2 1 6F9A374D
+P 8200 1800
+F 0 "U?" H 8200 2100 50  0000 C CNN
+F 1 "EPM7512AEQFP144-3" H 8200 1400 50  0000 C CNN
+F 2 "Package_QFP" H 9050 -1100 50  0001 L CNN
+F 3 "https://www.altera.com/content/dam/altera-www/global/en_US/pdfs/literature/hb/max2/max2_mii5v1.pdf" H 8200 1800 50  0001 C CNN
+	2    8200 1800
+	1    0    0    -1  
+$EndComp
+$Comp
+L Oscillator:ASE-xxxMHz X?
+U 1 1 6F9BB54A
+P 6300 1750
+F 0 "X?" H 6550 1700 50  0000 L CNN
+F 1 "ASE-16MHz" H 6550 1600 50  0000 L CNN
+F 2 "Oscillator:Oscillator_SMD_Abracon_ASE-4Pin_3.2x2.5mm" H 7000 1400 50  0001 C CNN
+F 3 "http://www.abracon.com/Oscillators/ASV.pdf" H 6200 1750 50  0001 C CNN
+	1    6300 1750
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6600 1750 7500 1750
+$Comp
+L power:GNDPWR #PWR?
+U 1 1 6F9BB551
+P 6300 2050
+F 0 "#PWR?" H 6300 1850 50  0001 C CNN
+F 1 "GNDPWR" H 6450 2050 50  0000 C CNN
+F 2 "" H 6300 2000 50  0001 C CNN
+F 3 "" H 6300 2000 50  0001 C CNN
+	1    6300 2050
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:+3.3V #PWR?
+U 1 1 6F9BB557
+P 6300 1300
+F 0 "#PWR?" H 6300 1150 50  0001 C CNN
+F 1 "+3.3V" H 6315 1473 50  0000 C CNN
+F 2 "" H 6300 1300 50  0001 C CNN
+F 3 "" H 6300 1300 50  0001 C CNN
+	1    6300 1300
+	1    0    0    -1  
+$EndComp
+NoConn ~ 6000 1750
+$Comp
+L Device:C C?
+U 1 1 6F9BB55E
+P 6650 1450
+F 0 "C?" H 6765 1496 50  0000 L CNN
+F 1 "100nF" H 6765 1405 50  0000 L CNN
+F 2 "" H 6688 1300 50  0001 C CNN
+F 3 "~" H 6650 1450 50  0001 C CNN
+	1    6650 1450
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6300 1300 6650 1300
+$Comp
+L power:GNDPWR #PWR?
+U 1 1 6F9BB565
+P 6650 1600
+F 0 "#PWR?" H 6650 1400 50  0001 C CNN
+F 1 "GNDPWR" H 6800 1600 50  0000 C CNN
+F 2 "" H 6650 1550 50  0001 C CNN
+F 3 "" H 6650 1550 50  0001 C CNN
+	1    6650 1600
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6300 1300 6300 1450
+Connection ~ 6300 1300
+$Comp
+L Connector_Generic:Conn_02x05_Odd_Even J?
+U 1 1 6F9F2008
+P 9850 1850
+F 0 "J?" H 9900 2267 50  0000 C CNN
+F 1 "JTAG CPLD" H 9900 2176 50  0000 C CNN
+F 2 "" H 9850 1850 50  0001 C CNN
+F 3 "~" H 9850 1850 50  0001 C CNN
+	1    9850 1850
+	1    0    0    -1  
+$EndComp
+NoConn ~ 9650 1950
+NoConn ~ 10150 1950
+NoConn ~ 10150 1850
+Wire Wire Line
+	10150 1650 10250 1650
+Wire Wire Line
+	10250 1650 10250 2050
+Wire Wire Line
+	10250 2050 10150 2050
+$Comp
+L power:GNDPWR #PWR?
+U 1 1 6F9F2017
+P 10250 2150
+F 0 "#PWR?" H 10250 1950 50  0001 C CNN
+F 1 "GNDPWR" H 10400 2150 50  0000 C CNN
+F 2 "" H 10250 2100 50  0001 C CNN
+F 3 "" H 10250 2100 50  0001 C CNN
+	1    10250 2150
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	10250 2150 10250 2050
+Connection ~ 10250 2050
+Wire Wire Line
+	10150 1750 10450 1750
+Wire Wire Line
+	10450 1750 10450 1700
+Wire Wire Line
+	8900 1650 9650 1650
+Wire Wire Line
+	9050 2050 9050 1950
+Wire Wire Line
+	9050 1950 8900 1950
+$Comp
+L power:+3.3V #PWR?
+U 1 1 6FA01A74
+P 10450 1700
+F 0 "#PWR?" H 10450 1550 50  0001 C CNN
+F 1 "+3.3V" H 10465 1873 50  0000 C CNN
+F 2 "" H 10450 1700 50  0001 C CNN
+F 3 "" H 10450 1700 50  0001 C CNN
+	1    10450 1700
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	8900 1750 9650 1750
+Wire Wire Line
+	8900 1850 9650 1850
+Wire Wire Line
+	9050 2050 9650 2050
+Wire Wire Line
+	7300 1200 7400 1200
+Wire Wire Line
+	7400 1200 7400 1650
+Wire Wire Line
+	7400 1650 7500 1650
+NoConn ~ 7500 1850
+NoConn ~ 7500 1950
+$EndSCHEMATC

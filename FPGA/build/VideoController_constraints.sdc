@@ -38,14 +38,24 @@ set_time_format -unit ns -decimal_places 3
 # Create Clock
 #**************************************************************
 
+create_clock -name {altera_reserved_tck} -period 100.000 -waveform { 0.000 50.000 } [get_ports {altera_reserved_tck}]
 create_clock -name {CLOCK_50} -period 20.000 -waveform { 0.000 10.000 } [get_ports {CLOCK_50}]
 
 #**************************************************************
 # Create Generated Clock
 #**************************************************************
 
-derive_pll_clocks
-#create_generated_clock -name {vcpll|altpll_component|auto_generated|pll1|clk[0]} -source [get_pins {vcpll|altpll_component|auto_generated|pll1|inclk[0]}] -duty_cycle 50.000 -multiply_by 2 -master_clock {CLOCK_50} [get_pins {vcpll|altpll_component|auto_generated|pll1|clk[0]}] 
+#derive_pll_clocks
+create_generated_clock -name {SYS_CLK} -source [get_pins {VCPLL1|altpll_component|auto_generated|pll1|inclk[0]}] -duty_cycle 50.000 -multiply_by 12 -divide_by 5 -master_clock {CLOCK_50} [get_pins {VCPLL1|altpll_component|auto_generated|pll1|clk[0]}] 
+create_generated_clock -name {IF_CLK} -source [get_pins {VCPLL1|altpll_component|auto_generated|pll1|inclk[0]}] -duty_cycle 50.000 -multiply_by 8 -divide_by 25 -phase 180.000 -master_clock {CLOCK_50} [get_pins {VCPLL1|altpll_component|auto_generated|pll1|clk[1]}] 
+create_generated_clock -name {VIDCLK_8MHZ} -source [get_pins {VCPLL1|altpll_component|auto_generated|pll1|inclk[0]}] -duty_cycle 50.000 -multiply_by 8 -divide_by 25 -master_clock {CLOCK_50} [get_pins {VCPLL1|altpll_component|auto_generated|pll1|clk[2]}] 
+create_generated_clock -name {VIDCLK_16MHZ} -source [get_pins {VCPLL1|altpll_component|auto_generated|pll1|inclk[0]}] -duty_cycle 50.000 -multiply_by 16 -divide_by 25 -master_clock {CLOCK_50} [get_pins {VCPLL1|altpll_component|auto_generated|pll1|clk[3]}] 
+create_generated_clock -name {VIDCLK_40MHZ} -source [get_pins {VCPLL1|altpll_component|auto_generated|pll1|inclk[0]}] -duty_cycle 50.000 -multiply_by 8 -divide_by 5 -master_clock {CLOCK_50} [get_pins {VCPLL1|altpll_component|auto_generated|pll1|clk[4]}]
+create_generated_clock -name {VIDCLK_65MHZ} -source [get_pins {VCPLL2|altpll_component|auto_generated|pll1|inclk[0]}] -duty_cycle 50.000 -multiply_by 13 -divide_by 5 -master_clock {CLOCK_50} [get_pins {VCPLL2|altpll_component|auto_generated|pll1|clk[0]}] 
+create_generated_clock -name {VIDCLK_25_175MHZ} -source [get_pins {VCPLL2|altpll_component|auto_generated|pll1|inclk[0]}] -duty_cycle 50.000 -multiply_by 91 -divide_by 90 -master_clock {CLOCK_50} [get_pins {VCPLL2|altpll_component|auto_generated|pll1|clk[1]}] 
+create_generated_clock -name {VIDCLK_PSEUDO} -source [get_pins {VCPLL3|altpll_component|auto_generated|pll1|inclk[0]}] -duty_cycle 50.000 -multiply_by 64 -divide_by 25 -master_clock {CLOCK_50} [get_pins {VCPLL3|altpll_component|auto_generated|pll1|clk[0]}] 
+create_generated_clock -name {VIDCLK_8_86719MHZ} -source [get_pins {VCPLL4|altpll_component|auto_generated|pll1|inclk[0]}] -duty_cycle 50.000 -multiply_by 115 -divide_by 324 -master_clock {CLOCK_50} [get_pins {VCPLL4|altpll_component|auto_generated|pll1|clk[0]}] 
+create_generated_clock -name {VIDCLK_17_7344MHZ} -source [get_pins {VCPLL4|altpll_component|auto_generated|pll1|inclk[0]}] -duty_cycle 50.000 -multiply_by 115 -divide_by 162 -master_clock {CLOCK_50} [get_pins {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}] 
 
 
 #**************************************************************
@@ -66,35 +76,35 @@ derive_clock_uncertainty
 #**************************************************************
 
 set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {CLOCK_50}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VRESETn}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VZ80_WRn}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VZ80_RDn}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VZ80_IORQn}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VRESETn}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VZ80_WRn}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VZ80_RDn}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VZ80_IORQn}]
 #set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VMEM_CSn}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VADDR[15]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VADDR[14]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VADDR[13]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VADDR[12]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VADDR[11]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VADDR[10]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VADDR[9]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VADDR[8]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VADDR[7]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VADDR[6]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VADDR[5]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VADDR[4]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VADDR[3]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VADDR[2]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VADDR[1]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VADDR[0]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VDATA[0]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VDATA[1]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VDATA[2]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VDATA[3]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VDATA[4]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VDATA[5]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VDATA[6]}]
-set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VDATA[7]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VADDR[15]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VADDR[14]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VADDR[13]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VADDR[12]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VADDR[11]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VADDR[10]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VADDR[9]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VADDR[8]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VADDR[7]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VADDR[6]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VADDR[5]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VADDR[4]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VADDR[3]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VADDR[2]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VADDR[1]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VADDR[0]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VDATA[0]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VDATA[1]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VDATA[2]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VDATA[3]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VDATA[4]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VDATA[5]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VDATA[6]}]
+set_input_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VDATA[7]}]
 #set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {TBA[3]}]
 #set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {TBA[2]}]
 #set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {TBA[1]}]
@@ -110,36 +120,36 @@ set_input_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {SF
 # Set Output Delay
 #**************************************************************
 
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VDATA[0]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VDATA[1]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VDATA[2]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VDATA[3]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VDATA[4]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VDATA[5]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VDATA[6]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VDATA[7]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VWAITn}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VGA_B[0]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VGA_B[1]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VGA_B[2]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VGA_B[3]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VGA_G[0]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VGA_G[1]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VGA_G[2]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VGA_G[3]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VGA_R[0]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VGA_R[1]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VGA_R[2]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VGA_R[3]}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VGA_VS}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VGA_HS}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {CSYNC}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {CSYNCn}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VSRVIDEO_OUT}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VHBLNK_OUTn}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VHSY_OUT}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VSYNCH_OUT}]
-set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {VVBLNK_OUTn}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VDATA[0]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VDATA[1]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VDATA[2]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VDATA[3]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VDATA[4]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VDATA[5]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VDATA[6]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VDATA[7]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  8.000 [get_ports {VWAITn}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VGA_B[0]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VGA_B[1]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VGA_B[2]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VGA_B[3]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VGA_G[0]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VGA_G[1]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VGA_G[2]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VGA_G[3]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VGA_R[0]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VGA_R[1]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VGA_R[2]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VGA_R[3]}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VGA_VS}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VGA_HS}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {CSYNC}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {CSYNCn}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VSRVIDEO_OUT}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VHBLNK_OUTn}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VHSY_OUT}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VSYNCH_OUT}]
+set_output_delay -add_delay  -clock [get_clocks {SYS_CLK}]  1.000 [get_ports {VVBLNK_OUTn}]
 # Required for the Serial Flash Loader.
 set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {SFL:sfl|altserial_flash_loader_component|\GEN_ASMI_TYPE_1:asmi_inst~ALTERA_DCLK}]
 set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {SFL:sfl|altserial_flash_loader_component|\GEN_ASMI_TYPE_1:asmi_inst~ALTERA_SCE}]
@@ -156,33 +166,87 @@ set_output_delay -add_delay  -clock [get_clocks {CLOCK_50}]  1.000 [get_ports {a
 #**************************************************************
 # Set False Path
 #**************************************************************
-set_false_path  -from  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[3]}]  -to  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]
-set_false_path  -from  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[3]}]  -to  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]
-set_false_path  -from  [get_clocks {VCPLL2|altpll_component|auto_generated|pll1|clk[0]}]  -to  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[0]}]
-set_false_path  -from  [get_clocks {VCPLL2|altpll_component|auto_generated|pll1|clk[0]}]  -to  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]
-set_false_path  -from  [get_clocks {VCPLL2|altpll_component|auto_generated|pll1|clk[1]}]  -to  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[0]}]
-set_false_path  -from  [get_clocks {VCPLL2|altpll_component|auto_generated|pll1|clk[1]}]  -to  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]
-set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[0]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[0]}]
-set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[0]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[1]}]
-set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[0]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[2]}]
-set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[0]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[3]}]
-set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[0]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[4]}]
-set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[0]}]
-set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[1]}]
-set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[2]}]
-set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[3]}]
-set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]  -to  [get_clocks {VCPLL1|altpll_component|auto_generated|pll1|clk[4]}]
-set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[0]}]  -to  [get_clocks {VCPLL2|altpll_component|auto_generated|pll1|clk[0]}]
-set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]  -to  [get_clocks {VCPLL2|altpll_component|auto_generated|pll1|clk[0]}]
-set_false_path  -from  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]  -to  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[0]}]
-set_false_path  -from  [get_clocks {CLOCK_50}]  -to  [get_clocks {VCPLL4|altpll_component|auto_generated|pll1|clk[1]}]
+# There is no relationship between the different video frequencies, only one is used at a time and they are switched through synchronised D-Type flip flops.
+set_false_path  -from  [get_clocks {VIDCLK_8MHZ}]        -to  [get_clocks {CLOCK_50 VIDCLK_PSEUDO VIDCLK_16MHZ VIDCLK_40MHZ VIDCLK_65MHZ VIDCLK_25_175MHZ VIDCLK_8_86719MHZ VIDCLK_17_7344MHZ IF_CLK}]
+set_false_path  -from  [get_clocks {VIDCLK_8_86719MHZ}]  -to  [get_clocks {CLOCK_50 VIDCLK_PSEUDO VIDCLK_8MHZ VIDCLK_16MHZ VIDCLK_40MHZ VIDCLK_65MHZ VIDCLK_25_175MHZ VIDCLK_17_7344MHZ IF_CLK}]
+set_false_path  -from  [get_clocks {VIDCLK_16MHZ}]       -to  [get_clocks {CLOCK_50 VIDCLK_PSEUDO VIDCLK_8MHZ VIDCLK_40MHZ VIDCLK_65MHZ VIDCLK_25_175MHZ VIDCLK_8_86719MHZ VIDCLK_17_7344MHZ IF_CLK}]
+set_false_path  -from  [get_clocks {VIDCLK_17_7344MHZ}]  -to  [get_clocks {CLOCK_50 VIDCLK_PSEUDO VIDCLK_8MHZ VIDCLK_16MHZ VIDCLK_40MHZ VIDCLK_65MHZ VIDCLK_25_175MHZ VIDCLK_8_86719MHZ IF_CLK}]
+set_false_path  -from  [get_clocks {VIDCLK_25_175MHZ}]   -to  [get_clocks {CLOCK_50 VIDCLK_PSEUDO VIDCLK_8MHZ VIDCLK_16MHZ VIDCLK_40MHZ VIDCLK_65MHZ VIDCLK_8_86719MHZ VIDCLK_17_7344MHZ IF_CLK}]
+set_false_path  -from  [get_clocks {VIDCLK_40MHZ}]       -to  [get_clocks {CLOCK_50 VIDCLK_PSEUDO VIDCLK_8MHZ VIDCLK_16MHZ VIDCLK_65MHZ VIDCLK_25_175MHZ VIDCLK_8_86719MHZ VIDCLK_17_7344MHZ IF_CLK}]
+set_false_path  -from  [get_clocks {VIDCLK_65MHZ}]       -to  [get_clocks {CLOCK_50 VIDCLK_PSEUDO VIDCLK_8MHZ VIDCLK_16MHZ VIDCLK_40MHZ VIDCLK_65MHZ VIDCLK_25_175MHZ VIDCLK_8_86719MHZ VIDCLK_17_7344MHZ IF_CLK}]
+set_false_path  -from  [get_clocks {VIDCLK_PSEUDO}]      -to  [get_clocks {CLOCK_50 VIDCLK_PSEUDO VIDCLK_8MHZ VIDCLK_16MHZ VIDCLK_40MHZ VIDCLK_65MHZ VIDCLK_25_175MHZ VIDCLK_8_86719MHZ VIDCLK_17_7344MHZ IF_CLK}]
 
+# Z80 clock has no relationship to the video frequencies, it is used only for latching data asynchronous to the FPGA clocks.
+set_false_path  -from  [get_clocks {IF_CLK}]             -to  [get_clocks {VIDCLK_8MHZ VIDCLK_16MHZ VIDCLK_40MHZ VIDCLK_25_175MHZ VIDCLK_65MHZ VIDCLK_8_86719MHZ VIDCLK_17_7344MHZ VIDCLK_PSEUDO}]
 
+# The system clock has no real relationship with the video frequencies, rendering and display. The only place they meet is in the dual port BRAM.
+set_false_path  -from  [get_clocks {SYS_CLK}]            -to  [get_clocks {CLOCK_50 VIDCLK_8MHZ VIDCLK_16MHZ VIDCLK_40MHZ VIDCLK_25_175MHZ VIDCLK_65MHZ VIDCLK_8_86719MHZ VIDCLK_17_7344MHZ VIDCLK_PSEUDO}]
+
+# Clock 50MHZ, the input oscillator is only used for the PLL input and as I/O input/output latch which is detached from the video block
+set_false_path  -from  [get_clocks {CLOCK_50}]           -to  [get_clocks {VIDCLK_8MHZ VIDCLK_16MHZ VIDCLK_40MHZ VIDCLK_25_175MHZ VIDCLK_65MHZ VIDCLK_8_86719MHZ VIDCLK_17_7344MHZ VIDCLK_PSEUDO}]
+
+# The Z80 data, address and control lines do not go to the video block (except the parameter update which is not critical) so set it as a false path so as not to consider.
+set_false_path  -from  [get_ports {VDATA[*]}]            -to  [get_clocks {VIDCLK_8MHZ VIDCLK_16MHZ VIDCLK_40MHZ VIDCLK_25_175MHZ VIDCLK_65MHZ VIDCLK_8_86719MHZ VIDCLK_17_7344MHZ}]
+set_false_path  -from  [get_ports {VADDR[*]}]            -to [get_registers {VideoController:vcToplevel|XFER_MAPPED_DATA[*]}]
+set_false_path  -from  [get_ports {VZ80_WRn VZ80_RDn VZ80_IORQn}]            -to [get_registers {VideoController:vcToplevel|XFER_MAPPED_DATA[*]}]
 
 #**************************************************************
 # Set Multicycle Path
 #**************************************************************
 
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|DSP_PARAM_SEL[*]}] -to [get_ports {VDATA[*]}] -hold -start 1
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|DSP_PARAM_SEL[*]}] -to [get_ports {VDATA[*]}] -setup -start 2
+
+set_multicycle_path -from [get_clocks {SYS_CLK}] -to [get_clocks {IF_CLK}] -hold -start 1
+set_multicycle_path -from [get_clocks {SYS_CLK}] -to [get_clocks {IF_CLK}] -setup -start 2
+set_multicycle_path -from [get_clocks {IF_CLK}] -to [get_clocks {SYS_CLK}] -hold -start 2
+set_multicycle_path -from [get_clocks {IF_CLK}] -to [get_clocks {SYS_CLK}] -setup -start 3
+
+# GPU control and run variables have at least 1 clock between them being setup and used.
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_START_X[*]}] -to [get_registers {VideoController:vcToplevel|GPU_START_ADDR[*]}] -setup -start 2
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_END_X[*]}] -to [get_registers {VideoController:vcToplevel|GPU_START_ADDR[*]}] -setup -start 2
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_START_X[*]}] -to [get_registers {VideoController:vcToplevel|GRAM_GPU_ADDR[*]}] -setup -start 2
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_END_X[*]}] -to [get_registers {VideoController:vcToplevel|GRAM_GPU_ADDR[*]}] -setup -start 2
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_START_Y[*]}] -to [get_registers {VideoController:vcToplevel|GPU_START_ADDR[*]}] -setup -start 2
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_END_Y[*]}] -to [get_registers {VideoController:vcToplevel|GPU_START_ADDR[*]}] -setup -start 2
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_START_Y[*]}] -to [get_registers {VideoController:vcToplevel|GRAM_GPU_ADDR[*]}] -setup -start 2
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_END_Y[*]}] -to [get_registers {VideoController:vcToplevel|GRAM_GPU_ADDR[*]}] -setup -start 2
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_START_X[*]}] -to [get_registers {VideoController:vcToplevel|\GPU:GPU_VAR_Y[*]}] -setup -start 2
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_END_X[*]}] -to [get_registers {VideoController:vcToplevel|\GPU:GPU_VAR_Y[*]}] -setup -start 2
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_START_X[*]}] -to [get_registers {VideoController:vcToplevel|GPU_STATE.*}] -setup -start 2
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_END_X[*]}] -to [get_registers {VideoController:vcToplevel|GPU_STATE.*}] -setup -start 2
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_START_X[*]}] -to [get_registers {VideoController:vcToplevel|VRAM_GPU_ADDR[*]}] -setup -start 2
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_END_X[*]}] -to [get_registers {VideoController:vcToplevel|VRAM_GPU_ADDR[*]}] -setup -start 2
+
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_START_Y[*]}] -to [get_registers {VideoController:vcToplevel|VRAM_GPU_ADDR[*]}] -setup -start 2
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|GPU_START_ADDR[*]}] -to [get_registers {VideoController:vcToplevel|VRAM_GPU_ADDR[*]}] -setup -start 2
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_COLUMNS[*]}] -to [get_registers {VideoController:vcToplevel|GPU_START_ADDR[*]}] -setup -start 2
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_COLUMNS[*]}] -to [get_registers {VideoController:vcToplevel|VRAM_GPU_ADDR[*]}] -setup -start 2
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|XFER_DST_ADDR[*]}] -to [get_registers {VideoController:vcToplevel|XFER_MAPPED_DATA[*]}] -setup -start 2
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|XFER_DST_ADDR[*]}] -to [get_registers {VideoController:vcToplevel|XFER_DST_ADDR[*]}] -setup -start 2
+
+
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_START_X[*]}] -to [get_registers {VideoController:vcToplevel|GPU_START_ADDR[*]}] -hold -start 1
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_END_X[*]}] -to [get_registers {VideoController:vcToplevel|GPU_START_ADDR[*]}] -hold -start 1
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_START_X[*]}] -to [get_registers {VideoController:vcToplevel|GRAM_GPU_ADDR[*]}] -hold -start 1
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_END_X[*]}] -to [get_registers {VideoController:vcToplevel|GRAM_GPU_ADDR[*]}] -hold -start 1
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_START_Y[*]}] -to [get_registers {VideoController:vcToplevel|GPU_START_ADDR[*]}] -hold -start 1
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_END_Y[*]}] -to [get_registers {VideoController:vcToplevel|GPU_START_ADDR[*]}] -hold -start 1
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_START_Y[*]}] -to [get_registers {VideoController:vcToplevel|GRAM_GPU_ADDR[*]}] -hold -start 1
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_END_Y[*]}] -to [get_registers {VideoController:vcToplevel|GRAM_GPU_ADDR[*]}] -hold -start 1
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_START_X[*]}] -to [get_registers {VideoController:vcToplevel|\GPU:GPU_VAR_Y[*]}] -hold -start 1
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_END_X[*]}] -to [get_registers {VideoController:vcToplevel|\GPU:GPU_VAR_Y[*]}] -hold -start 1
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_START_X[*]}] -to [get_registers {VideoController:vcToplevel|GPU_STATE.*}] -hold -start 1
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_END_X[*]}] -to [get_registers {VideoController:vcToplevel|GPU_STATE.*}] -hold -start 1
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_START_X[*]}] -to [get_registers {VideoController:vcToplevel|VRAM_GPU_ADDR[*]}] -hold -start 1
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_END_X[*]}] -to [get_registers {VideoController:vcToplevel|VRAM_GPU_ADDR[*]}] -hold -start 1
+
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_START_Y[*]}] -to [get_registers {VideoController:vcToplevel|VRAM_GPU_ADDR[*]}] -hold -start 1
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|GPU_START_ADDR[*]}] -to [get_registers {VideoController:vcToplevel|VRAM_GPU_ADDR[*]}] -hold -start 1
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_COLUMNS[*]}] -to [get_registers {VideoController:vcToplevel|GPU_START_ADDR[*]}] -hold -start 1
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|\GPU:GPU_COLUMNS[*]}] -to [get_registers {VideoController:vcToplevel|VRAM_GPU_ADDR[*]}] -hold -start 1
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|XFER_DST_ADDR[*]}] -to [get_registers {VideoController:vcToplevel|XFER_MAPPED_DATA[*]}] -hold -start 1
+set_multicycle_path -from [get_registers {VideoController:vcToplevel|XFER_DST_ADDR[*]}] -to [get_registers {VideoController:vcToplevel|XFER_DST_ADDR[*]}] -hold -start 1
 
 
 #**************************************************************

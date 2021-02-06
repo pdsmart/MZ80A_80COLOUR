@@ -1,0 +1,112 @@
+
+(rules PCB MZ80-80CLR
+  (snap_angle 
+    fortyfive_degree
+  )
+  (autoroute_settings
+    (fanout off)
+    (eu.mihosoft.freerouting.autoroute on)
+    (postroute on)
+    (vias on)
+    (via_costs 50)
+    (plane_via_costs 5)
+    (start_ripup_costs 100)
+    (start_pass_no 10444)
+    (layer_rule F.Cu
+      (active on)
+      (preferred_direction vertical)
+      (preferred_direction_trace_costs 1.0)
+      (against_preferred_direction_trace_costs 2.4)
+    )
+    (layer_rule B.Cu
+      (active on)
+      (preferred_direction horizontal)
+      (preferred_direction_trace_costs 1.0)
+      (against_preferred_direction_trace_costs 1.7)
+    )
+  )
+  (rule
+    (width 152.4)
+    (clear 200.2)
+    (clear 125.0 (type smd_to_turn_gap))
+    (clear 50.0 (type smd_smd))
+  )
+  (padstack "Via[0-1]_800:400_um"
+    (shape
+      (circle F.Cu 800.0 0.0 0.0)
+    )
+    (shape
+      (circle B.Cu 800.0 0.0 0.0)
+    )
+    (attach off)
+  )
+  (via 
+    "Via[0-1]_800:400_um" "Via[0-1]_800:400_um" default
+  )
+  (via 
+    "Via[0-1]_800:400_um-kicad_default" "Via[0-1]_800:400_um" "kicad_default"
+  )
+  (via_rule
+    default "Via[0-1]_800:400_um"
+  )
+  (via_rule
+    "kicad_default" "Via[0-1]_800:400_um-kicad_default"
+  )
+  (class default
+    (clearance_class default)
+    (via_rule default)
+    (rule
+      (width 152.4)
+    )
+    (circuit 
+      (use_layer F.Cu B.Cu)
+    )
+  )
+  (class "kicad_default"
+    "Net-(SK1-Pad21)" "Net-(SK2-Pad1)" "Net-(SK3-Pad13)" "Net-(SK3-Pad12)" "Net-(SK3-Pad6)" "Net-(SK3-Pad5)" "Net-(SK3-Pad15)" "Net-(U3-Pad13)"
+    "Net-(U3-Pad12)" "Net-(JP1-Pad2)" "Net-(Q1-Pad3)" "Net-(Q1-Pad2)" CSYNC ~CSYNC~ "/FPGA and CPLD Module/A13" "/FPGA and CPLD Module/~IORQ~"
+    "/FPGA and CPLD Module/A12" "/FPGA and CPLD Module/~MEM_CS~" "/FPGA and CPLD Module/A11" "/FPGA and CPLD Module/A10" "/FPGA and CPLD Module/A9" "/FPGA and CPLD Module/A8" "/FPGA and CPLD Module/A7" "/FPGA and CPLD Module/A6"
+    "/FPGA and CPLD Module/A5" "/FPGA and CPLD Module/A4" "/FPGA and CPLD Module/A3" "/FPGA and CPLD Module/A2" "/FPGA and CPLD Module/A1" "/FPGA and CPLD Module/A0" "Net-(J4-Pad7)" "Net-(J4-Pad6)"
+    "Net-(J4-Pad5)" "Net-(J4-Pad3)" "Net-(Q1-Pad1)" "VGA_B3" "VGA_B2" "VGA_B1" "VGA_B0" "VGA_R3"
+    "VGA_R2" "VGA_R1" "VGA_R0" "VGA_G3" "VGA_G2" "VGA_G1" "VGA_G0" "VGA_HS"
+    "VGA_VS" "Net-(SK1-Pad20)" "1MHZ_OUT" "2MHZ_OUT" "Net-(U3-Pad129)" "Net-(U3-Pad128)" "Net-(U3-Pad127)" "Net-(U3-Pad126)"
+    "/FPGA and CPLD Module/~VMEM_CS~" "/FPGA and CPLD Module/~VIORQ~" "/FPGA and CPLD Module/~VRD~" "Net-(U3-Pad91)" "Net-(U3-Pad90)" "Net-(U3-Pad89)" "/FPGA and CPLD Module/~VCS~" "/FPGA and CPLD Module/~VGT~"
+    "/FPGA and CPLD Module/~VWR~" "/FPGA and CPLD Module/~VRESET~" "Net-(U3-Pad55)" "Net-(U3-Pad54)" "Net-(U3-Pad53)" "Net-(U3-Pad52)" "Net-(U3-Pad25)" "Net-(U3-Pad24)"
+    "Net-(U3-Pad23)" "Net-(U3-Pad22)" "Net-(U3-Pad8)" "Net-(U3-Pad6)" "Net-(U5-Pad128)" "Net-(U5-Pad126)" "SRVIDEO_OUT" "Net-(X1-Pad1)"
+    "Net-(X2-Pad1)" "Net-(U3-Pad15)" "/FPGA and CPLD Module/~RESET~" "/FPGA and CPLD Module/~RD~" "/FPGA and CPLD Module/~CS~" "/FPGA and CPLD Module/~MB_HBLNK~" "/FPGA and CPLD Module/~GT~" "/FPGA and CPLD Module/MB_SYNCH"
+    "/FPGA and CPLD Module/~WR~" "/FPGA and CPLD Module/~MB_V-HBLNK~" "/FPGA and CPLD Module/MB_VIDEO" "/FPGA and CPLD Module/MB_LOAD" "/FPGA and CPLD Module/D7" "/FPGA and CPLD Module/D6" "/FPGA and CPLD Module/D5" "/FPGA and CPLD Module/D4"
+    "/FPGA and CPLD Module/D3" "/FPGA and CPLD Module/D2" "/FPGA and CPLD Module/D1" "/FPGA and CPLD Module/D0" "Net-(J3-Pad9)" "Net-(J3-Pad8)" "Net-(J3-Pad7)" "Net-(J3-Pad6)"
+    "Net-(J3-Pad5)" "Net-(J3-Pad3)" "Net-(J3-Pad1)" "Net-(J4-Pad10)" "Net-(J4-Pad4)" "Net-(R1-Pad2)" "Net-(R2-Pad2)" "Net-(R3-Pad2)"
+    "Net-(SK1-Pad23)" VRAMD2 "Net-(SK1-Pad22)" VRAMD1 VRAMD0 "Net-(SK1-Pad8)" "Net-(SK1-Pad19)" "Net-(SK1-Pad7)"
+    "~VRAM_CS_IN~" "Net-(SK1-Pad6)" VRAMD7 "Net-(SK1-Pad5)" VRAMD6 "Net-(SK1-Pad4)" VRAMD5 "Net-(SK1-Pad3)"
+    VRAMD4 "Net-(SK1-Pad2)" VRAMD3 "Net-(SK1-Pad1)" "Net-(SK3-Pad27)" "Net-(SK3-Pad26)" "31.5K_OUT" "Net-(SK3-Pad24)"
+    "SYNCH_OUT" "Net-(SK3-Pad23)" "Net-(SK3-Pad9)" "Net-(SK3-Pad22)" "~VBLNK_OUT~" "HSY_OUT" "Net-(SK3-Pad20)" "Net-(SK3-Pad18)"
+    "Net-(SK3-Pad17)" "Net-(SK3-Pad16)" "~HBLNK_OUT~" "/FPGA and CPLD Module/VDATA6" "/FPGA and CPLD Module/VDATA7" "/FPGA and CPLD Module/VDATA5" "/FPGA and CPLD Module/VDATA4" "/FPGA and CPLD Module/VDATA3"
+    "/FPGA and CPLD Module/VDATA2" "/FPGA and CPLD Module/VDATA1" "/FPGA and CPLD Module/VDATA0" "/FPGA and CPLD Module/VADDR13" "/FPGA and CPLD Module/VADDR12" "/FPGA and CPLD Module/VADDR11" "/FPGA and CPLD Module/VADDR10" "/FPGA and CPLD Module/VADDR9"
+    "/FPGA and CPLD Module/VADDR8" "/FPGA and CPLD Module/VADDR7" "/FPGA and CPLD Module/VADDR6" "/FPGA and CPLD Module/VADDR5" "/FPGA and CPLD Module/VADDR4" "/FPGA and CPLD Module/VADDR3" "/FPGA and CPLD Module/VADDR2" "/FPGA and CPLD Module/VADDR1"
+    "/FPGA and CPLD Module/VADDR0" "Net-(U3-Pad88)" "Net-(U5-Pad143)" "Net-(U5-Pad142)" "Net-(U5-Pad141)" "Net-(U5-Pad140)" "Net-(U5-Pad139)" "Net-(U5-Pad138)"
+    "Net-(U5-Pad137)" "Net-(U5-Pad136)" "Net-(U5-Pad134)" "Net-(U5-Pad133)" "Net-(U5-Pad132)" "Net-(U5-Pad131)" "Net-(U5-Pad26)" "Net-(U5-Pad25)"
+    "Net-(U3-Pad11)" "Net-(U5-Pad5)" "/FPGA and CPLD Module/~VVRAM_CS_IN~" "/FPGA and CPLD Module/TBA2" "/FPGA and CPLD Module/TBA1" "/FPGA and CPLD Module/TBA0" "/FPGA and CPLD Module/TBA4" "/FPGA and CPLD Module/TBA3"
+    "/FPGA and CPLD Module/TBA5" "/FPGA and CPLD Module/TBA6" "/FPGA and CPLD Module/TBA7" "/FPGA and CPLD Module/TBA8" "/FPGA and CPLD Module/TBA9" "Net-(SK2-Pad16)" "/FPGA and CPLD Module/VSRVIDEO_OUT" "/FPGA and CPLD Module/~VHBLNK_OUT~"
+    "/FPGA and CPLD Module/VHSY_OUT" "/FPGA and CPLD Module/VSYNCH_OUT" "Net-(J2-Pad30)" "/FPGA and CPLD Module/~VVBLNK_OUT~" "Net-(SK1-Pad24)" "Net-(U3-Pad28)" "Net-(U5-Pad82)"
+    (clearance_class "kicad_default")
+    (via_rule kicad_default)
+    (rule
+      (width 152.4)
+    )
+    (circuit 
+      (use_layer F.Cu B.Cu)
+    )
+  )
+  (class power
+    GNDPWR +5V +2V5 +3V3 +1V2
+    (clearance_class default)
+    (via_rule default)
+    (rule
+      (width 254.0)
+    )
+    (circuit 
+      (use_layer F.Cu B.Cu)
+    )
+  )
+)
